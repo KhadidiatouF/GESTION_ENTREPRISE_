@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    /* Dossier d'entrée et de sortie */
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    /* ESM moderne avec Node 22 */
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "types": ["node"],
+
+    /* Génération */
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    /* Vérifications strictes */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    /* Options supplémentaires */
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx"
+  }
+}

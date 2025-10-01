@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Entreprise {
+  id        Int       @id @default(autoincrement())
+  nom       String
+  adresse   String?
+  logo      String?
+  telephone String?
+  site      String?
+  email     String?
+  users     User[]
+  employes  Employe[]
+  payruns   Payrun[]
+}
+
+model User {
+  id           Int         @id @default(autoincrement())
+  login        String      @unique
+  password     String
+  nom          String
+  prenom       String
+  adresse      String?
+  email        String      @unique
+  role         Role
+  estActif     Boolean     @default(true)
+  entreprise   Entreprise? @relation(fields: [entrepriseId], references: [id])
+  entrepriseId Int?
+  paiements    Paiement[]  
+}
+
+model Employe {
+  id           Int         @id @default(autoincrement())
+  prenom       String
+  nom          String
+  fonction     String?
+  matricule    String      @unique
+  estActif     Boolean     @default(true)
+  typeContrat  ContratType
+  entreprise   Entreprise  @relation(fields: [entrepriseId], references: [id])
+  entrepriseId Int
+  payslips     Payslip[]
+}
+
+model Payrun {
+  id           Int        @id @default(autoincrement())
+  dateDebut    DateTime
+  dateFin      DateTime
+  salaire      Decimal    @db.Decimal(10, 2)
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id])
+  entrepriseId Int
+  payslips     Payslip[]
+}
+
+
+model Payslip {
+  id              Int       @id @default(autoincrement())
+  jourTravaille   Int
+  montant         Decimal   @db.Decimal(10, 2)  
+  totalPaye       Decimal   @default(0) @db.Decimal(10, 2)
+  montantRestant  Decimal   @default(0) @db.Decimal(10, 2)  
+  statut          StatutPayslip @default(EN_ATTENTE) 
+  employe         Employe   @relation(fields: [employeId], references: [id])
+  employeId       Int
+  payrun          Payrun    @relation(fields: [payrunId], references: [id])
+  payrunId        Int
+  paiements       Paiement[]
+}
+
+enum StatutPayslip {
+  EN_ATTENTE
+  PARTIEL
+  PAYE
+}
+
+model Paiement {
+  id          Int              @id @default(autoincrement())
+  date        DateTime         @default(now())
+  montant     Decimal          @db.Decimal(10,2)
+  methode     MethodePaiement
+  reference   String?          
+  note        String?          
+  reçuUrl     String?          
+  
+  caisse      User             @relation(fields: [caisseId], references: [id])
+  caisseId    Int
+  payslip     Payslip          @relation(fields: [payslipId], references: [id])
+  payslipId   Int
+}
+
+enum MethodePaiement {
+  ESPECES
+  VIREMENT
+  CHEQUE
+  ORANGE_MONEY   
+  WAVE           
+  AUTRE          
+}
+enum ContratType {
+  JOURNALIER
+  MENSUELLE
+  HEBDOMADAIRE
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  CASSIER
+}
