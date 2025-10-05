@@ -9,7 +9,7 @@ export const userSchema = z.object({
     email: z.string().email("Email invalide"),
     estActif: z.boolean().default(true),
     entrepriseId: z.number().int().positive().optional(),
-    role: z.enum(["ADMIN", "SUPER_ADMIN", "CASSIER"])
+    role: z.enum(["ADMIN", "SUPER_ADMIN", "CASSIER","VIGILE", "EMPLOYE"])
 
 })
 

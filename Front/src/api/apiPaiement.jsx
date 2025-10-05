@@ -21,35 +21,40 @@ export const ApiPaiement = {
     }
   },
 
-  effectuerPaiement: async (paiementData) => {
-    const accessToken = localStorage.getItem("accessToken");
+effectuerPaiement: async (paiementData) => {
+  const accessToken = localStorage.getItem("accessToken");
+  
+  if (!accessToken) {
+    throw new Error("Jeton d'accès non trouvé. Veuillez vous reconnecter.");
+  }
+  
+  try {
+    console.log(" Envoi des données:", paiementData); // Debug
     
-    if (!accessToken) {
-      throw new Error("Jeton d'accès non trouvé. Veuillez vous reconnecter.");
+    const response = await fetch(`${BASE_URL}/paiement`, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(paiementData),
+    });
+    
+    const responseData = await response.json();
+    console.log(" Réponse brute:", responseData); // Debug
+    
+    if (!response.ok) {
+      // ✅ Extraire le vrai message d'erreur du backend
+      const errorMessage = responseData.message || responseData.error || "Erreur inconnue";
+      throw new Error(errorMessage);
     }
     
-    try {
-      const response = await fetch(`${BASE_URL}/paiement`, {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify(paiementData),
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Erreur ${response.status}: ${errorText}`);
-        throw new Error("Erreur API : " + (errorText || response.statusText));
-      }
-      
-      return await response.json();
-    } catch (error) {
-      console.error(error);
-      throw error;
-    }
-  },
+    return responseData;
+  } catch (error) {
+    console.error("❌ Erreur complète:", error);
+    throw error;
+  }
+},
 
   getHistoriquePaiements: async (filters = {}) => {
     const accessToken = localStorage.getItem('accessToken');
@@ -126,5 +131,73 @@ export const ApiPaiement = {
       console.error(error);
       throw error;
     }
-  }
+  },
+
+ getPaiements: async () => {
+    const accessToken = localStorage.getItem("accessToken");
+    try {
+      const response = await fetch(`${BASE_URL}/paiement`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) throw new Error("Erreur API");
+
+      // 👇 Assure-toi que ça renvoie un tableau
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.error("Erreur récupération paiements:", error);
+      return [];
+    }
+  },
+
+  // Créer un paiement
+  createPaiement: async (data) => {
+    const accessToken = localStorage.getItem("accessToken");
+    try {
+      const response = await fetch(`${BASE_URL}/paiement`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la création du paiement");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur API createPaiement:", error);
+      throw error;
+    }
+  },
+
+  // Supprimer un paiement
+  deletePaiement: async (id) => {
+    const accessToken = localStorage.getItem("accessToken");
+    try {
+      const response = await fetch(`${BASE_URL}/paiement/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la suppression du paiement");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erreur API deletePaiement:", error);
+      throw error;
+    }
+  },
 };

@@ -1,0 +1,188 @@
+import { 
+  Building2, Users, DollarSign, TrendingUp, Bell, Settings, LogOut, Activity, ChevronDown, FileText, Crown 
+} from 'lucide-react';
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { StatCard } from '../balise/StatCard';
+
+
+export default function ContentGraphe({globalStats, evolutionEntreprises, repartitionSectorielle, evolutionMasseSalariale}) {
+
+  const pieColors = repartitionSectorielle.map(d => d.couleur);
+
+
+   const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'XOF',
+    minimumFractionDigits: 0
+  }).format(amount);
+};
+
+
+  return (
+     <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Entreprises totales"
+          value={globalStats.totalEntreprises}
+          icon={Building2}
+          iconBgColor="bg-blue-100"
+          evolutionText="+3 ce mois"
+          evolutionType="good"
+        />
+        <StatCard
+          title="Employés totaux"
+          value={globalStats.totalEmployes.toLocaleString()}
+          icon={Users}
+          iconBgColor="bg-orange-100"
+          evolutionText="+127 ce mois"
+          evolutionType="good"
+        />
+        <StatCard
+          title="Masse salariale totale"
+          value={formatCurrency(globalStats.masseSalarialeTotale)}
+          icon={DollarSign}
+          iconBgColor="bg-purple-100"
+          evolutionText={`${globalStats.evolutionMois > 0 ? '+' : ''}${globalStats.evolutionMois}% ce mois`}
+          evolutionType={globalStats.evolutionMois >= 0 ? 'good' : 'bad'}
+          evolutionValue={globalStats.evolutionMois}
+        />
+        <StatCard
+          title="Taux d'activité"
+          value="94.2%"
+          icon={Activity}
+          iconBgColor="bg-red-100"
+          evolutionText="Très bon"
+          evolutionType="good"
+        />
+      </div>
+
+      {/* Graphiques analytiques */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        
+        {/* Croissance des Entreprises (Area Chart) */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Croissance des Entreprises</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={evolutionEntreprises}>
+              <defs>
+                <linearGradient id="colorEntreprises" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="mois" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+              <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+              <Tooltip contentStyle={{backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: '8px'}} labelStyle={{color: '#374151'}} />
+              <Area type="monotone" dataKey="entreprises" stroke="#3B82F6" fillOpacity={1} fill="url(#colorEntreprises)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Croissance des Employés (Line Chart) */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Croissance des Employés</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={evolutionEntreprises}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="mois" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+              <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+              <Tooltip contentStyle={{backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: '8px'}} labelStyle={{color: '#374151'}} />
+              <Line type="monotone" dataKey="employes" stroke="#10B981" strokeWidth={3} dot={{r: 5, fill: '#10B981'}} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Répartition sectorielle (Pie Chart) */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Répartition par Secteur</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie
+                data={repartitionSectorielle}
+                cx="50%"
+                cy="50%"
+                innerRadius={40}
+                outerRadius={80}
+                paddingAngle={2}
+                dataKey="nombre"
+              >
+                {repartitionSectorielle.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={{backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: '8px'}} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+            {repartitionSectorielle.map((item, index) => (
+              <div key={index} className="flex items-center space-x-2">
+                <div className={`w-3 h-3 rounded-full`} style={{backgroundColor: item.couleur}}></div>
+                <span className="text-gray-600">{item.secteur} ({item.nombre})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Graphiques supplémentaires */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Évolution masse salariale (Area Chart) */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Masse Salariale Mensuelle</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <AreaChart data={evolutionMasseSalariale}>
+              <defs>
+                <linearGradient id="colorMasse" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="semaine" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{fontSize: 12, fill: '#6B7280'}}
+                tickFormatter={(value) => `${(value/1000)}k`}
+              />
+              <Tooltip 
+                contentStyle={{backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: '8px'}}
+                labelStyle={{color: '#374151'}}
+                formatter={(value) => [`${formatCurrency(value)}`, 'Montant']}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="montant" 
+                stroke="#8B5CF6" 
+                fillOpacity={1} 
+                fill="url(#colorMasse)" 
+                strokeWidth={2} 
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Statistiques de paiements (Bar Chart) */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Paiements par Semaine</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={evolutionMasseSalariale}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="semaine" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+              <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#6B7280'}} />
+              <Tooltip 
+                contentStyle={{backgroundColor: 'white', border: '1px solid #E5E7EB', borderRadius: '8px'}}
+                labelStyle={{color: '#374151'}}
+                formatter={(value) => [value, 'Paiements']}
+              />
+              <Bar dataKey="paiements" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  )
+}

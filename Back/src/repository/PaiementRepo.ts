@@ -7,16 +7,7 @@ export class PaiementRepo implements IRepository<Paiement> {
     
     async findAll(): Promise<Paiement[]> {
         return await this.prisma.paiement.findMany({
-            include: {
-                payslip: {
-                    include: {
-                        employe: true,
-                        payrun: true
-                    }
-                },
-                caisse: true
-            },
-            orderBy: { date: 'desc' }
+          
         });
     }
 

@@ -19,7 +19,7 @@
     /* Vérifications strictes */
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    "exactOptionalPropertyTypes": false,
 
     /* Options supplémentaires */
     "isolatedModules": true,

@@ -4,6 +4,11 @@ import EntrepriseRoute from "./routes/EntrepriseRoute";
 import EmployeRoute from "./routes/EmployeRoute";
 import AuthRoute from "./routes/AuthRoute";
 import PaiementRoute from "./routes/PaiementRoute";
+import PayrunRoute from "./routes/PayrunRoute";
+import PayslipRoute from "./routes/PayslipRoute";
+import PointageRoute from "./routes/PointageRoute";
+
+
 import path from "path";
 import cors from "cors";
 
@@ -28,6 +33,12 @@ app.use("/users", UserRoute)
 app.use("/entreprises", EntrepriseRoute)
 app.use("/employes", EmployeRoute)
 app.use("/paiement", PaiementRoute)
+app.use("/payrun", PayrunRoute)
+app.use("/payslip", PayslipRoute)
+app.use("/pointage", PointageRoute);
+
+
+
 
 
 app.listen(port, ()=>{

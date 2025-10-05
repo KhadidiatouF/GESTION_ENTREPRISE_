@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, Crown, LogOut, Shield, User } from 'lucide-react';
+import { Bell, ChevronDown, Crown, HatGlasses, LogOut, Shield, User } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -48,6 +48,8 @@ export default function Header({ notifications }) {
         return 'ADMIN';
       case 'CASSIER':
         return 'CASSIER';
+      case 'VIGILE':
+        return 'VIGILE';
       default:
         return 'EMPLOYÉ';
     }
@@ -59,6 +61,8 @@ export default function Header({ notifications }) {
         return <Crown className="w-5 h-5 text-white" />;
       case 'ADMIN':
         return <Shield className="w-5 h-5 text-white" />;
+      case 'VIGILE':
+        return <HatGlasses className="w-5 h-5 text-white" />;
       default:
         return <User className="w-5 h-5 text-white" />;
     }
@@ -72,6 +76,8 @@ export default function Header({ notifications }) {
         return 'from-blue-600 to-blue-600';
       case 'CASSIER':
         return 'from-purple-600 to-purple-600';
+      case 'VIGLE':
+        return 'from-yellow-600 to-yellow-600';
       default:
         return 'from-gray-600 to-gray-600';
     }
@@ -85,6 +91,8 @@ export default function Header({ notifications }) {
         return 'bg-blue-600';
       case 'CASSIER':
         return 'bg-purple-600';
+      case 'VIGILE':
+        return 'bg-yellow-600';
       default:
         return 'bg-gray-600';
     }

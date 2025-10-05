@@ -8,7 +8,16 @@ export class EmployRepo implements IRepository <Employe>{
     private prisma : PrismaClient = new PrismaClient();
     
     async findAll(): Promise<Employe[]> {
-        return await this.prisma.employe.findMany({});
+        // return await this.prisma.employe.findMany({});
+        // Exemple côté service backend
+        return await this.prisma.employe.findMany({
+        include: {
+            payslips: {
+            take: 1
+            }
+        }
+        });
+
     }
 
     async findById(id: number): Promise<any> {

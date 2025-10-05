@@ -33,6 +33,7 @@ model User {
   entreprise   Entreprise? @relation(fields: [entrepriseId], references: [id])
   entrepriseId Int?
   paiements    Paiement[]  
+  pointages    Pointage[]
 }
 
 model Employe {
@@ -46,18 +47,22 @@ model Employe {
   entreprise   Entreprise  @relation(fields: [entrepriseId], references: [id])
   entrepriseId Int
   payslips     Payslip[]
+  qrCode      String?   @unique
+  pointages   Pointage[]
 }
 
 model Payrun {
-  id           Int        @id @default(autoincrement())
-  dateDebut    DateTime
-  dateFin      DateTime
-  salaire      Decimal    @db.Decimal(10, 2)
-  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id])
-  entrepriseId Int
-  payslips     Payslip[]
+  id              Int        @id @default(autoincrement())
+  dateDebut       DateTime
+  dateFin         DateTime
+  salaire         Decimal    @db.Decimal(10, 2)
+  typeContrat     ContratType
+  joursTravailles Int?       // Pour les journaliers
+  entreprise      Entreprise @relation(fields: [entrepriseId], references: [id])
+  entrepriseId    Int
+  payslips        Payslip[]
+  createdAt       DateTime   @default(now())
 }
-
 
 model Payslip {
   id              Int       @id @default(autoincrement())
@@ -87,7 +92,6 @@ model Paiement {
   reference   String?          
   note        String?          
   reçuUrl     String?          
-  
   caisse      User             @relation(fields: [caisseId], references: [id])
   caisseId    Int
   payslip     Payslip          @relation(fields: [payslipId], references: [id])
@@ -112,4 +116,29 @@ enum Role {
   SUPER_ADMIN
   ADMIN
   CASSIER
+  VIGILE
+  EMPLOYE
 }
+
+
+model Pointage {
+  id          Int      @id @default(autoincrement())
+  employeId   Int
+  date        DateTime @default(now())
+  heureArrivee DateTime 
+  statut      StatutPointage
+  employe     Employe  @relation(fields: [employeId], references: [id], onDelete: Cascade)
+  scannePar   User?          @relation(fields: [scanneParId], references: [id])
+  scanneParId Int?           // ID du vigile qui a scanné
+  
+  @@unique([employeId, date])
+  @@index([employeId, date])
+
+}
+
+enum StatutPointage {
+  PRESENT
+  RETARD
+  ABSENT
+}
+
