@@ -83,26 +83,17 @@ const AdminEntreprise = () => {
     }
   };
 
-  const fetchPayruns = async () => {
+ const fetchPayruns = async () => {
     setLoading(true);
     try {
-      const accessToken = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:4004/payrun', {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      
-      const data = await response.json();
-      
-      if (data && data.data) {
-        const filtered = data.data.filter(p => p.entrepriseId === entrepriseId);
-        setPayruns(filtered);
-      }
-    } catch (error) {
-      console.error('Erreur:', error);
+      const data = await apiPayrun.getPayrun(entrepriseId);
+      setPayruns(data.data || []); // selon ta structure FormaterResponse
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useEffect(() => {
     if (activeTab === 'employes') {

@@ -7,7 +7,6 @@ import ModalEmploye from '../Modals/modalEmploy';
 import { apiEmploye } from '../../api/apiEmploy';
 
 const EmployeList = () => {
-  // Récupération de l'entreprise de l'admin connecté depuis le localStorage
   const userEntrepriseId = Number(localStorage.getItem("entrepriseId")) || null;
   const entrepriseNom = localStorage.getItem("entrepriseNom") || 'Non défini';
 
@@ -18,17 +17,13 @@ const EmployeList = () => {
   const [filterContrat, setFilterContrat] = useState('tous');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmploye, setSelectedEmploye] = useState(null);
-  
 
   const getStatutFromBoolean = (estActif) => estActif ? 'actif' : 'inactif';
-
   const getStatutColor = (estActif) => 
     getStatutFromBoolean(estActif) === 'actif'
       ? 'bg-green-100 text-green-800 border-green-200' 
       : 'bg-red-100 text-red-800 border-red-200';
-
   const getStatutLabel = (estActif) => estActif ? 'Actif' : 'Inactif';
-
   const getContratColor = (typeContrat) => {
     const colors = {
       'JOURNALIER': 'bg-blue-100 text-blue-800',
@@ -43,7 +38,6 @@ const EmployeList = () => {
       setLoading(true);
       setError(null);
       const data = await apiEmploye.getEmploye();
-
       if (data && data.data && Array.isArray(data.data)) {
         setEmployes(data.data);
       } else if (data && data.employes && Array.isArray(data.employes)) {
@@ -132,6 +126,20 @@ const EmployeList = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedEmploye(null);
+  };
+
+  // 🔹 Nouvelle fonction pour télécharger le QR code
+  const handleDownloadQrCode = (qrCodeUrl, prenom, nom) => {
+    if (!qrCodeUrl) {
+      alert("QR code non disponible");
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = qrCodeUrl; // URL ou dataURL du QR code
+    link.download = `${prenom}_${nom}_QRCode.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -272,6 +280,13 @@ const EmployeList = () => {
                       title="Supprimer"
                     >
                       <Trash2 className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => handleDownloadQrCode(employe.qrCode, employe.prenom, employe.nom)}
+                      className="p-1 text-blue-600 hover:text-blue-900"
+                      title="Télécharger QR code"
+                    >
+                      <Download className="w-4 h-4" />
                     </button>
                     <button 
                       className="p-1 text-gray-400 hover:text-gray-600" 

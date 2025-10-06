@@ -9,8 +9,6 @@ import { ApiPaiement } from '../../api/apiPaiement';
 import {jsPDF} from "jspdf";
 import "jspdf-autotable";
 import autoTable from "jspdf-autotable";
-import Header from '../../layout/header';
-import Sidebar from '../../layout/sidebar';
 
 
 export default function PaiementList() {
@@ -97,62 +95,102 @@ const getPayrunInfo = (paiement) => {
     dateFin: new Date(payrun.dateFin || new Date())
   };
 };
-
-const generatePDF = (paiement) => {
+const generatePDF = async (paiement) => {
   try {
     const employe = getEmployeInfo(paiement);
     const payrun = getPayrunInfo(paiement);
+
+    let logoData = null;
+    let entrepriseNom = 'Mon Entreprise';
+    
+    try {
+      const entrepriseId = paiement.employe?.entrepriseId || paiement.entrepriseId;
+      
+      if (entrepriseId) {
+        const accessToken = localStorage.getItem('accessToken');
+        
+        const response = await fetch(`http://localhost:4004/entreprises/${entrepriseId}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        
+        if (response.ok) {
+          const entrepriseData = await response.json();
+          logoData = entrepriseData.data?.logo || entrepriseData.logo;
+          entrepriseNom = entrepriseData.data?.nom || entrepriseData.nom || 'Mon Entreprise';
+        }
+      }
+    } catch (err) {
+      console.warn('Impossible de charger le logo de l\'entreprise:', err);
+    }
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     
-    // ============ EN-TÊTE ============
-    doc.setFillColor(37, 99, 235); // Bleu
+    doc.setFillColor(37, 99, 235);
     doc.rect(0, 0, pageWidth, 50, 'F');
+    
+    if (logoData) {
+      try {
+        let logoBase64 = logoData;
+        
+        if (logoData.startsWith('http')) {
+          logoBase64 = await convertImageToBase64(logoData);
+        }
+        
+        if (logoData.startsWith('/uploads')) {
+          logoBase64 = await convertImageToBase64(`http://localhost:4004${logoData}`);
+        }
+        
+        doc.addImage(logoBase64, 'PNG', 15, 7.5, 35, 35);
+      } catch (err) {
+        console.warn('Erreur lors de l\'ajout du logo:', err);
+      }
+    }
     
     doc.setFontSize(24);
     doc.setTextColor(255, 255, 255);
     doc.setFont(undefined, 'bold');
-    doc.text("FICHE DE PAIE", pageWidth / 2, 30, { align: 'center' });
+    const titleX = logoData ? 60 : pageWidth / 2;
+    const titleAlign = logoData ? 'left' : 'center';
+    doc.text("FICHE DE PAIE", titleX, 25, { align: titleAlign });
     
-    // ============ SECTION EMPLOYÉ ============
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.text(entrepriseNom, titleX, 35, { align: titleAlign });
+    
+    
     let yPos = 65;
     
-    // Carte employé avec bordure
-    doc.setFillColor(239, 246, 255); // bg-blue-50
-    doc.setDrawColor(191, 219, 254); // border-blue-300
+    doc.setFillColor(239, 246, 255);
+    doc.setDrawColor(191, 219, 254);
     doc.setLineWidth(0.5);
     doc.roundedRect(15, yPos, pageWidth - 30, 50, 3, 3, 'FD');
     
-    // Avatar circulaire
-    doc.setFillColor(219, 234, 254); // bg-blue-100
+    doc.setFillColor(219, 234, 254);
     doc.circle(28, yPos + 25, 10, 'F');
-    doc.setFillColor(37, 99, 235); // text-blue-600
+    doc.setFillColor(37, 99, 235);
     doc.setFontSize(16);
     doc.text("👤", 28, yPos + 28, { align: 'center' });
     
-    // Informations employé
     const infoX = 45;
-    doc.setTextColor(17, 24, 39); // text-gray-900
+    doc.setTextColor(17, 24, 39);
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     doc.text(`${employe.prenom} ${employe.nom}`, infoX, yPos + 15);
     
     doc.setFontSize(10);
     doc.setFont(undefined, 'normal');
-    doc.setTextColor(75, 85, 99); // text-gray-600
+    doc.setTextColor(75, 85, 99);
     doc.text(`Matricule: ${employe.matricule}`, infoX, yPos + 25);
     doc.text(`Fonction: ${employe.fonction}`, infoX, yPos + 33);
     doc.text(`Période: ${formatDate(payrun.dateDebut)} - ${formatDate(payrun.dateFin)}`, infoX, yPos + 41);
 
-    // ============ SECTION MONTANTS (3 cartes) ============
     yPos += 65;
     const cardWidth = (pageWidth - 50) / 3;
     const cardHeight = 35;
     
-    // Card 1: Montant total
-    doc.setFillColor(249, 250, 251); // bg-gray-50
+    doc.setFillColor(249, 250, 251);
     doc.setDrawColor(229, 231, 235);
     doc.roundedRect(15, yPos, cardWidth, cardHeight, 2, 2, 'FD');
     
@@ -166,9 +204,8 @@ const generatePDF = (paiement) => {
     doc.setFont(undefined, 'bold');
     doc.text(formatCurrency(paiement.montant || 0), 20, yPos + 23);
     
-    // Card 2: Déjà payé
     const card2X = 15 + cardWidth + 5;
-    doc.setFillColor(240, 253, 244); // bg-green-50
+    doc.setFillColor(240, 253, 244);
     doc.setDrawColor(187, 247, 208);
     doc.roundedRect(card2X, yPos, cardWidth, cardHeight, 2, 2, 'FD');
     
@@ -182,9 +219,8 @@ const generatePDF = (paiement) => {
     doc.setFont(undefined, 'bold');
     doc.text(formatCurrency(paiement.totalPaye || 0), card2X + 5, yPos + 23);
     
-    // Card 3: Reste à payer
     const card3X = card2X + cardWidth + 5;
-    doc.setFillColor(254, 242, 242); // bg-red-50
+    doc.setFillColor(254, 242, 242);
     doc.setDrawColor(254, 202, 202);
     doc.roundedRect(card3X, yPos, cardWidth, cardHeight, 2, 2, 'FD');
     
@@ -198,7 +234,6 @@ const generatePDF = (paiement) => {
     doc.setFont(undefined, 'bold');
     doc.text(formatCurrency(paiement.montantRestant || 0), card3X + 5, yPos + 23);
 
-    // ============ DÉTAILS DU PAIEMENT ============
     yPos += 50;
     
     doc.setFontSize(14);
@@ -208,7 +243,6 @@ const generatePDF = (paiement) => {
     
     yPos += 8;
     
-    // Tableau avec autoTable
     autoTable(doc, {
       startY: yPos,
       head: [["Description", "Montant"]],
@@ -243,7 +277,6 @@ const generatePDF = (paiement) => {
         fillColor: [249, 250, 251]
       },
       didParseCell: function(data) {
-        // Colorer la dernière ligne (Montant restant)
         if (data.section === 'body' && data.row.index === 2) {
           if (data.column.index === 1) {
             data.cell.styles.textColor = [220, 38, 38];
@@ -256,7 +289,6 @@ const generatePDF = (paiement) => {
       }
     });
 
-    // ============ STATUT DU PAIEMENT ============
     yPos = doc.lastAutoTable.finalY + 20;
     
     doc.setFontSize(11);
@@ -264,7 +296,6 @@ const generatePDF = (paiement) => {
     doc.setFont(undefined, 'bold');
     doc.text("Statut du paiement:", 15, yPos);
     
-    // Badge de statut stylisé
     const statutLabel = getStatutLabel(paiement.statut);
     let bgColor, textColor, borderColor;
     
@@ -290,7 +321,6 @@ const generatePDF = (paiement) => {
         borderColor = [209, 213, 219];
     }
     
-    // Badge avec bordure
     const badgeX = 70;
     const badgeWidth = 35;
     const badgeHeight = 10;
@@ -305,10 +335,8 @@ const generatePDF = (paiement) => {
     doc.setFontSize(10);
     doc.text(statutLabel, badgeX + (badgeWidth / 2), yPos - 0.5, { align: 'center' });
 
-    // ============ PIED DE PAGE ============
     const footerY = pageHeight - 20;
     
-    // Ligne de séparation
     doc.setDrawColor(229, 231, 235);
     doc.setLineWidth(0.5);
     doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
@@ -323,7 +351,6 @@ const generatePDF = (paiement) => {
       { align: 'center' }
     );
 
-    // ============ SAUVEGARDE ============
     const monthYear = payrun.dateDebut.toISOString().slice(0, 7);
     doc.save(`fiche_paie_${employe.matricule}_${monthYear}.pdf`);
 
@@ -333,6 +360,23 @@ const generatePDF = (paiement) => {
   }
 };
 
+
+const convertImageToBase64 = (url) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+};
   const fetchPaiements = async () => {
     try {
       setLoading(true);
@@ -416,7 +460,6 @@ const generatePDF = (paiement) => {
     
     <div className="space-y-6">
 
-      {/* Statistiques (inchangé) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
@@ -467,7 +510,6 @@ const generatePDF = (paiement) => {
         </div>
       </div>
 
-      {/* Tableau des paiements */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
@@ -481,7 +523,6 @@ const generatePDF = (paiement) => {
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               </button>
-              {/* CORRECTION : Le bouton d'export appelle maintenant la fonction PDF */}
               <button 
                 onClick={generatePDF}
                 disabled={filteredPaiements.length === 0}
@@ -493,7 +534,6 @@ const generatePDF = (paiement) => {
             </div>
           </div>
 
-          {/* Filtres (inchangé) */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -532,7 +572,6 @@ const generatePDF = (paiement) => {
           )}
         </div>
 
-        {/* Tableau */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -613,7 +652,6 @@ const generatePDF = (paiement) => {
                         ) : (
                           <span className="text-sm text-green-600 font-medium mr-4">✓ Payé</span>
                         )}
-                         {/* Icône pour télécharger PDF individuel */}
                           <button
                             onClick={() => generatePDF(paiement)}
                             className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 transition-colors"
@@ -631,7 +669,6 @@ const generatePDF = (paiement) => {
         </div>
       </div>
 
-      {/* Modal de paiement */}
       {showModal && selectedPayslip && (
         <ModalPaiement
           isOpen={showModal}

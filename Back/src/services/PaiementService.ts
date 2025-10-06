@@ -39,7 +39,7 @@ export class PaiementService {
   async createPaiement(data: any) {
     const { payslipId, caisseId, montant, methode, reference, note, reçuUrl } = data;
 
-    // Récupérer le payslip
+    
     const payslip = await prisma.payslip.findUnique({
       where: { id: payslipId }
     });
@@ -48,14 +48,11 @@ export class PaiementService {
       throw new Error("Bulletin de paie non trouvé");
     }
 
-    // Vérifier que le montant ne dépasse pas le montant restant
     if (Number(montant) > Number(payslip.montantRestant)) {
       throw new Error("Le montant du paiement dépasse le montant restant");
     }
 
-    // Créer le paiement et mettre à jour le payslip en une transaction
     return await prisma.$transaction(async (tx) => {
-      // Créer le paiement
       const paiement = await tx.paiement.create({
         data: {
           payslipId,
@@ -68,11 +65,10 @@ export class PaiementService {
         }
       });
 
-      // Calculer les nouveaux montants
+      
       const nouveauTotalPaye = Number(payslip.totalPaye) + Number(montant);
       const nouveauMontantRestant = Number(payslip.montant) - nouveauTotalPaye;
 
-      // Déterminer le nouveau statut
       let nouveauStatut: StatutPayslip = StatutPayslip.EN_ATTENTE;
 
       if (nouveauMontantRestant === 0) {
@@ -81,7 +77,6 @@ export class PaiementService {
         nouveauStatut = StatutPayslip.PARTIEL;
       }
 
-      // Mettre à jour le payslip
       await tx.payslip.update({
         where: { id: payslipId },
         data: {
@@ -117,7 +112,6 @@ export class PaiementService {
   }
 
   async getPayslipsEntreprise(caisseId: number) {
-    // Récupérer l'utilisateur caissier pour avoir son entrepriseId
     const caisse = await prisma.user.findUnique({
       where: { id: caisseId },
       select: { entrepriseId: true }
@@ -127,7 +121,6 @@ export class PaiementService {
       throw new Error("Entreprise non trouvée pour ce caissier");
     }
 
-    // Récupérer tous les payslips de l'entreprise
     return await prisma.payslip.findMany({
       where: {
         employe: {

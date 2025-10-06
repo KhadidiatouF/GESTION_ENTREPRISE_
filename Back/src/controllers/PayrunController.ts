@@ -9,18 +9,31 @@ const payrunService = new PayrunService();
 
 export class PayrunController {
 
-  static async getAllPayrun(req: Request, res: Response, next: NextFunction) {
-    try {
-      const payruns = await payrunService.getAllPayrun();
-      if (payruns) {
-        FormaterResponse.success(res, payruns, "Payruns récupérés avec succès", HttpCode.OK);
-      } else {
-        FormaterResponse.failed(res, "Payruns non trouvés", HttpCode.NOT_FOUND);
-      }
-    } catch (error) {
-      next(error);
+static async getAllPayrun(req: Request, res: Response, next: NextFunction) {
+  try {
+    const entrepriseId = Number(req.query.entrepriseId);
+
+    // ✅ Vérifie la présence et la validité
+    if (!entrepriseId || isNaN(entrepriseId)) {
+      return FormaterResponse.failed(
+        res,
+        "Le paramètre entrepriseId est manquant ou invalide",
+        HttpCode.BAD_REQUEST
+      );
     }
+
+    const payruns = await payrunService.getAllPayruns(entrepriseId);
+
+    if (payruns && payruns.length > 0) {
+      FormaterResponse.success(res, payruns, "Payruns récupérés avec succès", HttpCode.OK);
+    } else {
+      FormaterResponse.failed(res, "Aucun payrun trouvé pour cette entreprise", HttpCode.NOT_FOUND);
+    }
+  } catch (error) {
+    next(error);
   }
+}
+
 
   static async getOnePayrun(req: Request, res: Response, next: NextFunction) {
     try {
@@ -60,14 +73,13 @@ export class PayrunController {
         );
       }
 
-       if (error instanceof ZodError) {
+      if (error instanceof ZodError) {
         return FormaterResponse.failed(
-            res,
-            "Données invalides: " + error.issues.map(e => e.message).join(", "),
-            HttpCode.BAD_REQUEST
+          res,
+          "Données invalides: " + error.issues.map(e => e.message).join(", "),
+          HttpCode.BAD_REQUEST
         );
-        }
-
+      }
 
       return FormaterResponse.failed(
         res,
@@ -108,12 +120,15 @@ export class PayrunController {
     }
   }
 
+  // ✅ Méthode corrigée pour récupérer les bulletins d’une payrun
   static async getPayslipsByPayrun(req: Request, res: Response, next: NextFunction) {
     try {
       const payrunId: number = Number(req.params.id);
-      const payslips = await payrunService.getPayslipsByPayrun(payrunId);
-      
-      if (payslips) {
+
+      const payrun = await payrunService.getOnePayrun(payrunId);
+      const payslips = payrun?.payslips || [];
+
+      if (payslips.length > 0) {
         FormaterResponse.success(
           res,
           payslips,
@@ -128,23 +143,25 @@ export class PayrunController {
     }
   }
 
-  static async genererBulletins(req: Request, res: Response) {
-    try {
-      const payrunId = Number(req.params.id);
-      const payrunService = new PayrunService();
+  // // Méthode pour générer les bulletins manuellement
+  // static async genererBulletins(req: Request, res: Response) {
+  //   try {
+  //     const payrunId = Number(req.params.id);
+
+  //     const result = await payrunService.genererBulletinsManuel(payrunId);
+
+  //     const payslips = await payrunService.getOnePayrun(payrunId);
       
-      const result = await payrunService.genererBulletinsManuel(payrunId);
-      
-      res.status(201).json({
-        success: true,
-        message: `${result} bulletin(s) généré(s) avec succès`,
-        data: await payrunService.getPayslipsByPayrun(payrunId)
-      });
-    } catch (error: any) {
-      res.status(error.status || 500).json({
-        success: false,
-        message: error.message || "Erreur serveur"
-      });
-    }
-  }
+  //     res.status(201).json({
+  //       success: true,
+  //       message: `${result} bulletin(s) généré(s) avec succès`,
+  //       data: payslips?.payslips || []
+  //     });
+  //   } catch (error: any) {
+  //     res.status(error.status || 500).json({
+  //       success: false,
+  //       message: error.message || "Erreur serveur"
+  //     });
+  //   }
+  // }
 }

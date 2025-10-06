@@ -59,10 +59,9 @@ export class UserController{
             );
         }
 
-        if (error instanceof ZodError) {
-
-            return FormaterResponse.failed( res,"le mot de passe doit avoir au moins 6 letrres", HttpCode.BAD_REQUEST
-            );
+      if (error instanceof ZodError) {
+            const firstError = error.issues[0]?.message || "Erreur de validation";
+            return FormaterResponse.failed(res, firstError, HttpCode.BAD_REQUEST);
         }
 
         return FormaterResponse.failed(res,"Erreur server",HttpCode.INTERNAL_SERVER_ERROR
@@ -78,7 +77,6 @@ export class UserController{
             if (userU) {
               FormaterResponse.success(res, userU, "User Modifié  avec succès", 200 )
             }
-            // res.status(HttpCode.OK).json({userU})
         } catch (error: any) {
             return (FormaterResponse.failed(res,"Utilisateur non trouvé", 404))
 

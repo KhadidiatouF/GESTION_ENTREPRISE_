@@ -7,7 +7,6 @@ import ModalEntrepriseDetails from '../Modals/modalDetail';
 import Header from '../../layout/header';
 import Sidebar from '../../layout/sidebar';
 
-// NOTE: Le composant principal est maintenant un flex-container pour la mise en page complète.
 export default function EntrepriseList({ notifications, activeLink, setActiveLink }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedEntreprise, setSelectedEntreprise] = useState(null);
@@ -17,14 +16,9 @@ export default function EntrepriseList({ notifications, activeLink, setActiveLin
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPeriod, setSelectedPeriod] = useState('6mois');
     const navigate = useNavigate()
-
     const [selectedEntrepriseId, setSelectedEntrepriseId] = useState(null);
-
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [selectedDetails, setSelectedDetails] = useState(null);
-
-    // --- Fonctions utilitaires ---
-
     const getEvolutionColor = (evolution) => {
         return evolution >= 0 ? 'text-green-600' : 'text-red-600';
     };
@@ -46,11 +40,10 @@ export default function EntrepriseList({ notifications, activeLink, setActiveLin
         }
     };
 
-    // --- Gestion des Modals et CRUD ---
 
     const handleAddEntreprise = () => {
-        setSelectedEntreprise(null); // S'assurer qu'on est en mode ajout
-        setSelectedEntrepriseId(null); // Pas d'ID pour l'ajout, l'ID est géré côté API si besoin
+        setSelectedEntreprise(null); 
+        setSelectedEntrepriseId(null); 
         setIsModalOpen(true);
     };
 
@@ -81,7 +74,6 @@ export default function EntrepriseList({ notifications, activeLink, setActiveLin
         }
     };
 
-    // --- Fonction de Fetch ---
 
     const fetchEntreprises = async () => {
         try {
@@ -93,20 +85,17 @@ export default function EntrepriseList({ notifications, activeLink, setActiveLin
 
             let entreprisesArray = [];
 
-            // Logique de vérification des données (conservée)
             if (response && Array.isArray(response.data)) {
                 entreprisesArray = response.data;
             } else if (response && Array.isArray(response.entreprises)) {
                 entreprisesArray = response.entreprises;
             } else if (response && response.id) {
-                // Pour le cas où l'API renvoie un seul objet au lieu d'un tableau
                 entreprisesArray = [response]; 
             } else if (Array.isArray(response)) {
                 entreprisesArray = response;
             }
 
 
-            // Assurez-vous que les entreprises ont des valeurs par défaut pour les colonnes
             const sanitizedEntreprises = entreprisesArray.map(e => ({
                 ...e,
                 employes: e.employes || [],
@@ -126,19 +115,16 @@ export default function EntrepriseList({ notifications, activeLink, setActiveLin
         }
     };
 
-    // --- useEffect et Filtrage ---
 
     useEffect(() => {
         fetchEntreprises();
-    }, [selectedPeriod]); // Déclenche le fetch lorsque la période change
+    }, [selectedPeriod]); 
 
     const filteredEntreprises = Array.isArray(entreprises) ? entreprises.filter(entreprise => {
         const nom = entreprise.nom || '';
       
-        return nom.toLowerCase().includes(searchTerm.toLowerCase()); // || admin.toLowerCase().includes(searchTerm.toLowerCase());
+        return nom.toLowerCase().includes(searchTerm.toLowerCase()); 
     }) : [];
-
-    // --- Navigation et Détails ---
 
     const handleUser = (entreprise) => {
         navigate("/super-admin/users", {
@@ -160,22 +146,15 @@ export default function EntrepriseList({ notifications, activeLink, setActiveLin
     };
 
 
-    // --- Rendu du Composant ---
-
     return (
-        // Conteneur principal: min-h-screen et flex-col pour Header/Main
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <Header notifications={notifications} />
 
-            {/* Conteneur pour Sidebar et Contenu Principal: flex-row pour side-by-side */}
             <div className="flex flex-1">
                 <Sidebar activeLink={activeLink} setActiveLink={setActiveLink} />
 
-                {/* Contenu Principal (Main Content) : flex-1 pour prendre l'espace restant */}
-                {/* Ajout d'un padding pour un meilleur espacement autour du tableau */}
                 <main className="flex-1 p-6 overflow-y-auto"> 
                     
-                    {/* Conteneur du Tableau: Il est maintenant à l'intérieur du main, centré et stylé */}
                     <div className="bg-white rounded-xl shadow-lg border border-gray-200">
 
                         <div className="p-6 border-b border-gray-200">
@@ -224,7 +203,6 @@ export default function EntrepriseList({ notifications, activeLink, setActiveLin
                                 </select>
                             </div>
 
-                            {/* Messages d'état */}
                             {loading && (
                                 <div className="mt-4 text-center">
                                     <div className="inline-flex items-center px-4 py-2 text-sm text-blue-600">
@@ -243,7 +221,6 @@ export default function EntrepriseList({ notifications, activeLink, setActiveLin
                             )}
                         </div>
 
-                        {/* Tableau des Entreprises */}
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
@@ -353,7 +330,6 @@ export default function EntrepriseList({ notifications, activeLink, setActiveLin
             </div>
 
 
-            {/* Modals sont bien positionnés ici, à la fin du composant */}
             {isModalOpen && (
                 <ModalEntreprise
                     isOpen={isModalOpen}

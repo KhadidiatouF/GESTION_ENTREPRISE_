@@ -43,7 +43,6 @@ export const apiUsers ={
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Ajoutez vos headers d'authentification si nécessaire
                 }
             });
 
@@ -123,7 +122,7 @@ export const apiUsers ={
         body: JSON.stringify(userData)
     });
 
-    const data = await res.json();  // <-- récupère le JSON
+    const data = await res.json();  
     if (!res.ok) {
       console.error("Erreur API:", data);
       return { success: false, error: data.message || "Erreur API" };

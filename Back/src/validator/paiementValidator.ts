@@ -13,10 +13,8 @@
 // });
 
 
-
 import { z } from 'zod';
 
-// Schéma de validation pour créer un paiement
 export const PaiementSchema = z.object({
   payslipId: z.number().int().positive(),
 

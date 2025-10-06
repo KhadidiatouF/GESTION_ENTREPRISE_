@@ -1,16 +1,39 @@
-import React, { useState } from 'react';
-import { X, DollarSign, User, AlertCircle, Clock } from 'lucide-react';
-import { ApiPaiement } from '../../api/apiPaiement'; 
+import React, { useState, useEffect } from 'react';
+import { X, DollarSign, User, AlertCircle, Clock, Calendar, CheckCircle } from 'lucide-react';
+import { ApiPaiement } from '../../api/apiPaiement';
+import { apiPointage } from '../../api/apiPointage';
 
 export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
-  const [montant, setMontant] = useState(payslip.montantRestant.toString());
+  const [montant, setMontant] = useState('');
   const [methode, setMethode] = useState('ESPECES');
-  // ✅ CORRECTION : Initialiser avec une date complète au format YYYY-MM-DD
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [reference, setReference] = useState('');
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [statsPresence, setStatsPresence] = useState(null);
+
+  useEffect(() => {
+    if (isOpen && payslip) {
+      setMontant(payslip.montantRestant.toString());
+      loadStatsPresence();
+    }
+  }, [isOpen, payslip]);
+
+  const loadStatsPresence = async () => {
+    if (!payslip || payslip.employe.typeContrat !== 'JOURNALIER') return;
+
+    try {
+      const response = await apiPointage.getStatistiques(
+        payslip.employe.id,
+        payslip.payrun.dateDebut,
+        payslip.payrun.dateFin
+      );
+      setStatsPresence(response.data);
+    } catch (err) {
+      console.error('Erreur stats:', err);
+    }
+  };
 
   if (!isOpen || !payslip) return null;
 
@@ -36,7 +59,6 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
 
     const montantNumber = parseFloat(montant);
 
-    // Validations
     if (!montantNumber || montantNumber <= 0) {
       setError('Le montant doit être supérieur à 0');
       return;
@@ -47,7 +69,6 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
       return;
     }
 
-    // ✅ Validation de la date
     if (!date) {
       setError('Veuillez sélectionner une date');
       return;
@@ -56,29 +77,22 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
     try {
       setLoading(true);
       
-      // ✅ CORRECTION : Utiliser la date sélectionnée et la formater correctement
       const paiementData = {
         payslipId: payslip.id,
-          caisseId: parseInt(localStorage.getItem('userId')), // ✅ Ajoutez ceci
-
-        date: new Date(date).toISOString(), // Format ISO complet
+        caisseId: parseInt(localStorage.getItem('userId')),
+        date: new Date(date).toISOString(),
         montant: montantNumber,
         methode,
         reference: reference || null,
         note: note || null
       };
 
-      console.log("✅ Données envoyées au backend:", paiementData);
-
       await ApiPaiement.effectuerPaiement(paiementData);
       
       onSuccess();
     } catch (err) {
-      console.error('❌ Erreur lors du paiement:', err);
-      setError(
-        err.message || 
-        'Erreur lors du paiement. Veuillez réessayer.'
-      );
+      console.error('Erreur paiement:', err);
+      setError(err.message || 'Erreur lors du paiement. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -93,6 +107,10 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
     setMontant(payslip.montantRestant.toString());
   };
 
+  const salaireJournalier = payslip.jourTravaille > 0 
+    ? payslip.montant / payslip.jourTravaille 
+    : payslip.payrun.salaire;
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
@@ -102,7 +120,6 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
         className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">Effectuer un paiement</h2>
           <button
@@ -113,9 +130,7 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
           </button>
         </div>
 
-        {/* Contenu */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Informations de l'employé */}
+        <div className="p-6 space-y-6">
           <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
             <div className="flex items-start space-x-4">
               <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -130,11 +145,56 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
                 <p className="text-sm text-gray-600">
                   Période: {formatDate(payslip.payrun.dateDebut)} - {formatDate(payslip.payrun.dateFin)}
                 </p>
+                <p className="text-sm font-medium text-blue-700 mt-1">
+                  Type: {payslip.employe.typeContrat}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Détails financiers */}
+          {payslip.employe.typeContrat === 'JOURNALIER' && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Calendar className="w-5 h-5 text-yellow-700 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-yellow-900 mb-2">Calcul basé sur la présence</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-yellow-700">Jours travaillés:</p>
+                      <p className="text-lg font-bold text-yellow-900">{payslip.jourTravaille} jours</p>
+                    </div>
+                    <div>
+                      <p className="text-yellow-700">Salaire journalier:</p>
+                      <p className="text-lg font-bold text-yellow-900">{formatCurrency(salaireJournalier)}</p>
+                    </div>
+                  </div>
+                  {statsPresence && (
+                    <div className="mt-3 pt-3 border-t border-yellow-300">
+                      <p className="text-xs text-yellow-800 mb-2">Détails présence:</p>
+                      <div className="flex gap-4 text-xs">
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3 text-green-600" />
+                          Présents: {statsPresence.presents}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3 text-orange-600" />
+                          Retards: {statsPresence.retards}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <X className="w-3 h-3 text-red-600" />
+                          Absents: {statsPresence.absents}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-yellow-700 mt-2">
+                    Total = {payslip.jourTravaille} × {formatCurrency(salaireJournalier)} = {formatCurrency(payslip.montant)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               <p className="text-sm font-medium text-gray-600">Montant total</p>
@@ -150,7 +210,6 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
             </div>
           </div>
 
-          {/* Historique des paiements */}
           {payslip.paiements && payslip.paiements.length > 0 && (
             <div className="border border-gray-200 rounded-lg p-4">
               <h4 className="font-semibold text-gray-900 mb-3">Historique des paiements</h4>
@@ -167,9 +226,7 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
             </div>
           )}
 
-          {/* Formulaire de paiement */}
           <div className="space-y-4">
-            {/* ✅ CHAMP DATE CORRIGÉ */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Date<span className="text-red-500">*</span>
@@ -268,7 +325,6 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
             </div>
           </div>
 
-          {/* Message d'erreur */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-2">
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -276,7 +332,6 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
             </div>
           )}
 
-          {/* Footer */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
             <button
               type="button"
@@ -286,7 +341,8 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
               Annuler
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={loading}
               className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
             >
@@ -303,7 +359,7 @@ export default function ModalPaiement({ isOpen, onClose, payslip, onSuccess }) {
               )}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

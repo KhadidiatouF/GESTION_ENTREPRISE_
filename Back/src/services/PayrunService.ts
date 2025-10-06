@@ -1,18 +1,25 @@
 import { PrismaClient, ContratType, StatutPayslip } from "@prisma/client";
+import { PointageService } from "./PointageService";
 
 const prisma = new PrismaClient();
+const pointageService = new PointageService();
 
 export class PayrunService {
-  
-  async getAllPayrun() {
+
+  async getAllPayruns(entrepriseId: number) {
     return await prisma.payrun.findMany({
+      where: { entrepriseId },
       include: {
         entreprise: true,
         payslips: {
           include: {
-            employe: true
+            employe: true,
+            paiements: true
           }
         }
+      },
+      orderBy: {
+        dateDebut: 'desc'
       }
     });
   }
@@ -25,7 +32,11 @@ export class PayrunService {
         payslips: {
           include: {
             employe: true,
-            paiements: true
+            paiements: {
+              include: {
+                caisse: true
+              }
+            }
           }
         }
       }
@@ -33,34 +44,8 @@ export class PayrunService {
   }
 
   async createPayrun(data: any) {
-    const { dateDebut, dateFin, salaire, typeContrat, joursTravailles, entrepriseId } = data;
+    const { dateDebut, dateFin, salaire, typeContrat, entrepriseId } = data;
 
-    // Créer le payrun
-    const payrun = await prisma.payrun.create({
-      data: {
-        dateDebut: new Date(dateDebut),
-        dateFin: new Date(dateFin),
-        salaire,
-        typeContrat,
-        joursTravailles: typeContrat === ContratType.JOURNALIER ? joursTravailles : null,
-        entrepriseId
-      }
-    });
-
-    // Générer automatiquement les payslips pour les employés concernés
-    await this.genererPayslips(payrun.id, entrepriseId, typeContrat, salaire, joursTravailles);
-
-    return await this.getOnePayrun(payrun.id);
-  }
-
-  private async genererPayslips(
-    payrunId: number,
-    entrepriseId: number,
-    typeContrat: ContratType,
-    salaire: number,
-    joursTravailles?: number
-  ) {
-    // Récupérer les employés actifs avec le même type de contrat
     const employes = await prisma.employe.findMany({
       where: {
         entrepriseId,
@@ -69,103 +54,167 @@ export class PayrunService {
       }
     });
 
-    // Créer un payslip pour chaque employé
-    const payslipsData = employes.map(employe => {
-      let montant = Number(salaire);
-      let jours = joursTravailles || 0;
+    if (employes.length === 0) {
+      throw new Error(`Aucun employé actif avec le contrat ${typeContrat}`);
+    }
 
-      // Calcul du montant selon le type de contrat
-      if (typeContrat === ContratType.JOURNALIER && joursTravailles) {
-        montant = Number(salaire) * joursTravailles;
-        jours = joursTravailles;
-      }
+    return await prisma.$transaction(async (tx) => {
+      const payrun = await tx.payrun.create({
+        data: {
+          dateDebut: new Date(dateDebut),
+          dateFin: new Date(dateFin),
+          salaire,
+          typeContrat,
+          entrepriseId
+        }
+      });
 
-      return {
-        employeId: employe.id,
-        payrunId,
-        jourTravaille: jours,
-        montant,
-        totalPaye: 0,
-        montantRestant: montant,
-        statut: StatutPayslip.EN_ATTENTE
-      };
-    });
+      const payslipsData = await Promise.all(
+        employes.map(async (employe) => {
+          let jourTravaille = 0;
+          let montant = Number(salaire);
 
-    // Créer tous les payslips en une seule transaction
-    if (payslipsData.length > 0) {
-      await prisma.payslip.createMany({
+          if (typeContrat === ContratType.JOURNALIER) {
+            jourTravaille = await pointageService.getJoursPresents(
+              employe.id,
+              new Date(dateDebut),
+              new Date(dateFin)
+            );
+            montant = jourTravaille * Number(salaire);
+          } else if (typeContrat === ContratType.HEBDOMADAIRE) {
+            const diffTime = Math.abs(new Date(dateFin).getTime() - new Date(dateDebut).getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            jourTravaille = Math.ceil(diffDays / 7);
+          } else if (typeContrat === ContratType.MENSUELLE) {
+            jourTravaille = 1;
+          }
+
+          return {
+            employeId: employe.id,
+            payrunId: payrun.id,
+            jourTravaille,
+            montant,
+            totalPaye: 0,
+            montantRestant: montant,
+            statut: StatutPayslip.EN_ATTENTE
+          };
+        })
+      );
+
+      await tx.payslip.createMany({
         data: payslipsData
       });
-    }
 
-    return payslipsData.length;
+      return await tx.payrun.findUnique({
+        where: { id: payrun.id },
+        include: {
+          payslips: {
+            include: {
+              employe: true
+            }
+          }
+        }
+      });
+    });
   }
 
-    async updatePayrun(id: number, data: any) {
-    const { dateDebut, dateFin, salaire, typeContrat, joursTravailles } = data;
+  async updatePayrun(id: number, data: any) {
+    const { dateDebut, dateFin, salaire } = data;
 
     return await prisma.payrun.update({
-        where: { id },
-        data: {
-        ...(dateDebut ? { dateDebut: new Date(dateDebut) } : {}),
-        ...(dateFin ? { dateFin: new Date(dateFin) } : {}),
-        ...(salaire !== undefined ? { salaire } : {}),
-        ...(typeContrat !== undefined ? { typeContrat } : {}),
-        ...(typeContrat === ContratType.JOURNALIER 
-            ? { joursTravailles } 
-            : { joursTravailles: null }),
-        }
-    });
-    }
-
-
-  async deletePayrun(id: number) {
-    // Supprimer d'abord les payslips associés
-    await prisma.payslip.deleteMany({
-      where: { payrunId: id }
-    });
-
-    return await prisma.payrun.delete({
-      where: { id }
-    });
-  }
-
-  async getPayslipsByPayrun(payrunId: number) {
-    return await prisma.payslip.findMany({
-      where: { payrunId },
-      include: {
-        employe: true,
-        paiements: true
+      where: { id },
+      data: {
+        dateDebut: dateDebut ? new Date(dateDebut) : undefined,
+        dateFin: dateFin ? new Date(dateFin) : undefined,
+        salaire
       }
     });
   }
 
-  async genererBulletinsManuel(payrunId: number) {
-  // Vérifier si le payrun existe
-  const payrun = await prisma.payrun.findUnique({
-    where: { id: payrunId }
-  });
-  
-  if (!payrun) {
-    throw { status: 404, message: "Cycle de paie non trouvé" };
+  async deletePayrun(id: number) {
+    return await prisma.$transaction(async (tx) => {
+      await tx.payslip.deleteMany({
+        where: { payrunId: id }
+      });
+
+      return await tx.payrun.delete({
+        where: { id }
+      });
+    });
   }
-  
-  // Vérifier s'il y a déjà des bulletins
-  const existingPayslips = await prisma.payslip.count({
-    where: { payrunId }
-  });
-  
-  if (existingPayslips > 0) {
-    throw { status: 400, message: "Les bulletins ont déjà été générés pour ce cycle" };
+
+  async recalculerPayslips(payrunId: number) {
+    const payrun = await prisma.payrun.findUnique({
+      where: { id: payrunId },
+      include: {
+        payslips: {
+          include: {
+            employe: true
+          }
+        }
+      }
+    });
+
+    if (!payrun) {
+      throw new Error("Payrun non trouvé");
+    }
+
+    const updates = await Promise.all(
+      payrun.payslips.map(async (payslip) => {
+        if (payrun.typeContrat === ContratType.JOURNALIER) {
+          const joursPresents = await pointageService.getJoursPresents(
+            payslip.employeId,
+            payrun.dateDebut,
+            payrun.dateFin
+          );
+
+          const nouveauMontant = joursPresents * Number(payrun.salaire);
+          const nouveauMontantRestant = nouveauMontant - Number(payslip.totalPaye);
+
+          return prisma.payslip.update({
+            where: { id: payslip.id },
+            data: {
+              jourTravaille: joursPresents,
+              montant: nouveauMontant,
+              montantRestant: nouveauMontantRestant
+            }
+          });
+        }
+        return payslip;
+      })
+    );
+
+    return updates;
   }
-  
-  // Générer les payslips
-  return await this.genererPayslips(
-    payrun.id,
-    payrun.entrepriseId,
-    payrun.typeContrat,
-    Number(payrun.salaire),
-    payrun.joursTravailles || undefined
-  );
-}
+
+  async getStatistiques(entrepriseId: number) {
+    const payruns = await prisma.payrun.findMany({
+      where: { entrepriseId },
+      include: {
+        payslips: true
+      }
+    });
+
+    const stats = {
+      totalPayruns: payruns.length,
+      totalEmployes: await prisma.employe.count({
+        where: { entrepriseId, estActif: true }
+      }),
+      totalPayslips: await prisma.payslip.count({
+        where: {
+          payrun: {
+            entrepriseId
+          }
+        }
+      }),
+      montantTotal: payruns.reduce((sum, pr) => 
+        sum + pr.payslips.reduce((s, ps) => s + Number(ps.montant), 0), 0
+      ),
+      montantPaye: payruns.reduce((sum, pr) => 
+        sum + pr.payslips.reduce((s, ps) => s + Number(ps.totalPaye), 0), 0
+      )
+    };
+
+    return stats;
+  }
 }

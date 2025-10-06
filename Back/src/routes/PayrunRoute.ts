@@ -10,7 +10,7 @@ router.post("/",PayrunController.createPayrun)
 router.put("/:id", PayrunController.updatePayrun)
 router.delete("/:id", PayrunController.deletePayrun)
 
-router.post("/:id/generer-bulletins", PayrunController.genererBulletins)
+// router.post("/:id/generer-bulletins", PayrunController.genererBulletins)
 
 
 

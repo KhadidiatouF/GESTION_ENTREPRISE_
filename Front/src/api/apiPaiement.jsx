@@ -2,7 +2,6 @@ const BASE_URL = "http://localhost:4004";
 
 
 export const ApiPaiement = {
-  // Récupérer tous les payslips de l'entreprise du caissier
   getPayslipsEntreprise: async () => {
     const accessToken = localStorage.getItem('accessToken');
     const userId = localStorage.getItem('userId');
@@ -41,17 +40,16 @@ effectuerPaiement: async (paiementData) => {
     });
     
     const responseData = await response.json();
-    console.log(" Réponse brute:", responseData); // Debug
+    console.log(" Réponse brute:", responseData); 
     
     if (!response.ok) {
-      // ✅ Extraire le vrai message d'erreur du backend
       const errorMessage = responseData.message || responseData.error || "Erreur inconnue";
       throw new Error(errorMessage);
     }
     
     return responseData;
   } catch (error) {
-    console.error("❌ Erreur complète:", error);
+    console.error(" Erreur complète:", error);
     throw error;
   }
 },
@@ -146,7 +144,6 @@ effectuerPaiement: async (paiementData) => {
 
       if (!response.ok) throw new Error("Erreur API");
 
-      // 👇 Assure-toi que ça renvoie un tableau
       const data = await response.json();
       return Array.isArray(data) ? data : [];
     } catch (error) {
@@ -155,7 +152,6 @@ effectuerPaiement: async (paiementData) => {
     }
   },
 
-  // Créer un paiement
   createPaiement: async (data) => {
     const accessToken = localStorage.getItem("accessToken");
     try {
@@ -179,7 +175,6 @@ effectuerPaiement: async (paiementData) => {
     }
   },
 
-  // Supprimer un paiement
   deletePaiement: async (id) => {
     const accessToken = localStorage.getItem("accessToken");
     try {
@@ -201,3 +196,8 @@ effectuerPaiement: async (paiementData) => {
     }
   },
 };
+
+
+
+
+

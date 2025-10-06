@@ -36,12 +36,10 @@ export const ApiEntreprise ={
   }
  },
 
-// Dans apiEntreprise.jsx
 
 addEntreprise: async (formData) => {
   const accessToken = localStorage.getItem("accessToken");
 
-  // Vérification ajoutée
   if (!accessToken) {
       throw new Error("Jeton d'accès non trouvé. Veuillez vous reconnecter.");
   }
@@ -49,19 +47,14 @@ addEntreprise: async (formData) => {
   try {
     const response = await fetch(`${BASE_URL}/entreprises`, {
       method: "POST",
-      // Laissez l'objet headers tel quel, mais vérifiez l'en-tête.
       headers: { 
-        // Pas besoin d'ajouter 'Content-Type: multipart/form-data', le navigateur le fait.
         'Authorization': `Bearer ${accessToken}` 
       },
       body: formData,
     });
     
-    // **VÉRIFICATION CRUCIALE :** // Si l'API renvoie un 400 ou 401, l'erreur contient des informations utiles.
     if (!response.ok) {
-        // Tenter de lire l'erreur du serveur
         const errorText = await response.text();
-        // Afficher le code d'état et le message d'erreur du serveur
         console.error(`Erreur ${response.status}: ${errorText}`);
         throw new Error("Erreur API : " + (errorText || response.statusText));
     }
@@ -79,15 +72,12 @@ updateEntreprise : async (id, updates) => {
 
   try {
     const response = await fetch(`${BASE_URL}/entreprises/${id}`, {
-      method: "PUT", // Ou "PATCH" selon votre API back-end
+      method: "PUT",
       headers: { 
-        // RETRAIT du header "Content-Type": "application/json"
-        // car nous envoyons un FormData qui gère son propre Content-Type (multipart/form-data)
         'Authorization': `Bearer ${accessToken}` 
       },
-      body: updates, // updates est maintenant un objet FormData
+      body: updates, 
     });
-    // Ajout de la vérification ici pour capturer les erreurs 4xx et 5xx
     if (!response.ok) throw new Error("Erreur API lors de la modification");
     return await response.json();
   } catch (error) {

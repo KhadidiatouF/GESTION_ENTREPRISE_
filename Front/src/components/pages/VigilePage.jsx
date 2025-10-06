@@ -20,38 +20,37 @@ export default function VigileScanner({ adminLinks, notifications }) {
   const videoRef = React.useRef(null);
   const canvasRef = React.useRef(null);
 
-  // --- Fonctions de Fetch et utilitaires (inchangées) ---
+const fetchRecentScans = async () => {
+  try {
+    const accessToken = localStorage.getItem('accessToken');
 
-  const fetchRecentScans = async () => {
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-      const today = new Date().toISOString().split('T')[0];
-      
-      const response = await fetch(
-        `http://localhost:4004/pointage/vigile/scans?date=${today}`,
-        {
-          headers: { 'Authorization': `Bearer ${accessToken}` }
-        }
-      );
+    // ✅ Appel vers le nouveau endpoint
+    const response = await fetch(
+      'http://localhost:4004/pointage/aujourd-hui',
+      { headers: { 'Authorization': `Bearer ${accessToken}` } }
+    );
 
-      if (response.ok) {
-        const data = await response.json();
-        const scans = data.data || [];
-        setRecentScans(scans);
-        
-        const presents = scans.filter(p => p.statut === 'PRESENT').length;
-        const retards = scans.filter(p => p.statut === 'RETARD').length;
-        
+    if (response.ok) {
+      const data = await response.json();
+      const scans = data.data?.pointages || [];
+      setRecentScans(scans);
+
+      // Récupérer les stats depuis le backend
+      const statsData = data.data?.stats;
+      if (statsData) {
         setStats({
-          presents,
-          retards,
-          total: scans.length
+          presents: statsData.presents,
+          retards: statsData.retards,
+          absents: statsData.absents,
+          total: statsData.total
         });
       }
-    } catch (error) {
-      console.error('Erreur lors du chargement des scans:', error);
     }
-  };
+  } catch (error) {
+    console.error('Erreur lors du chargement des scans:', error);
+  }
+};
+
 
   useEffect(() => {
     fetchRecentScans();
@@ -59,7 +58,6 @@ export default function VigileScanner({ adminLinks, notifications }) {
     return () => clearInterval(interval);
   }, []);
 
-  // --- Gestion de la caméra (inchangée) ---
   
 const startCamera = async () => {
   try {
@@ -78,11 +76,9 @@ const startCamera = async () => {
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       
-      // Attendre que la vidéo soit prête
       videoRef.current.onloadedmetadata = () => {
         videoRef.current.play().then(() => {
           console.log('Caméra démarrée');
-          // Démarrer le scan après que la vidéo soit jouée
           setTimeout(() => {
             scanQRCodeFromVideo();
           }, 500);
@@ -146,53 +142,118 @@ const scanQRCodeFromVideo = () => {
   }, []);
 
 
-  const handleScan = async (e) => {
-    e.preventDefault();
-    if (!qrInput.trim()) return;
 
-    setScanning(true);
-    setResult(null);
+// const handleScan = async (e) => {
+//   e.preventDefault();
+//   if (!qrInput.trim()) return;
 
-    try {
-      const accessToken = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:4004/pointage/scan', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          qrCode: qrInput,
-          scanneParId: vigileId
-        })
-      });
+//   setScanning(true);
+//   setResult(null);
 
-      const data = await response.json();
+//   try {
+//     const accessToken = localStorage.getItem('accessToken');
+//     const response = await fetch('http://localhost:4004/pointage/marquer-presence', {
+//       method: 'POST',
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'Authorization': `Bearer ${accessToken}`
+//       },
+//       body: JSON.stringify({
+//         matricule: qrInput,       // ou matricule si entrée manuelle
+//         scanneParId: vigileId
+//       })
+//     });
 
-      if (response.ok) {
-        setResult({
-          success: true,
-          message: data.message,
-          data: data.data
-        });
-        setQrInput('');
-        fetchRecentScans();
-      } else {
-        setResult({
-          success: false,
-          message: data.message || 'Erreur lors du scan'
-        });
-      }
-    } catch {
-      setResult({
-        success: false,
-        message: 'Erreur de connexion au serveur'
-      });
-    } finally {
-      setScanning(false);
-      setTimeout(() => setResult(null), 5000);
-    }
-  };
+//     const data = await response.json();
+
+//     if (response.ok) {
+//       setResult({
+//         success: true,
+//         message: data.message,
+//         data: data.data
+//       });
+//       setQrInput('');
+//       fetchRecentScans(); // attention : il faudra adapter aussi cette fonction
+//     } else {
+//       setResult({
+//         success: false,
+//         message: data.message || 'Erreur lors du scan'
+//       });
+//     }
+//   } catch {
+//     setResult({
+//       success: false,
+//       message: 'Erreur de connexion au serveur'
+//     });
+//   } finally {
+//     setScanning(false);
+//     setTimeout(() => setResult(null), 5000);
+//   }
+// };
+
+const handleScan = async (e) => {
+  e.preventDefault();
+  if (!qrInput.trim()) return;
+
+  setScanning(true);
+  setResult(null);
+
+  try {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch('http://localhost:4004/pointage/marquer-presence', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        matricule: qrInput,       // ou matricule si entrée manuelle
+        scanneParId: vigileId
+      })
+    });
+
+    const data = await response.json();
+    console.log('Réponse du scan:', data);
+
+   if (response.ok) {
+  // Nouveau scan ajouté
+  const newScan = data.data;
+  setRecentScans(prev => [newScan, ...prev]);
+  setStats(prev => ({
+    presents: prev.presents + (newScan.statut === 'PRESENT' ? 1 : 0),
+    retards: prev.retards + (newScan.statut === 'RETARD' ? 1 : 0),
+    total: prev.total + 1
+  }));
+  setResult({ success: true, message: data.message, data: newScan });
+} else {
+  // Cas : déjà pointé aujourd'hui
+  if (data.data) {
+    // Ajouter le scan existant dans recentScans
+    setRecentScans(prev => [data.data, ...prev]);
+    // Mettre à jour les stats
+    setStats(prev => ({
+      presents: prev.presents + (data.data.statut === 'PRESENT' ? 1 : 0),
+      retards: prev.retards + (data.data.statut === 'RETARD' ? 1 : 0),
+      total: prev.total + 1
+    }));
+  }
+  setResult({
+    success: false,
+    message: data.message || 'Erreur lors du scan'
+  });
+}
+
+  } catch (err) {
+    console.error('Erreur handleScan:', err);
+    setResult({
+      success: false,
+      message: 'Erreur de connexion au serveur'
+    });
+  } finally {
+    setScanning(false);
+    setTimeout(() => setResult(null), 5000);
+  }
+};
 
   const formatTime = (date) => {
     return new Date(date).toLocaleTimeString('fr-FR', {
@@ -222,10 +283,8 @@ const scanQRCodeFromVideo = () => {
             
             {/* 4. Contenu Principal (Main Content) : flex-1 pour prendre l'espace restant */}
             <main className="flex-1 p-6 overflow-y-auto">
-              {/* Le contenu est centré et limité en largeur à l'intérieur du Main */}
               <div className="max-w-4xl mx-auto">
                 
-                {/* En-tête */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -246,16 +305,15 @@ const scanQRCodeFromVideo = () => {
                   </div>
                 </div>
 
-                {/* Statistiques du jour */}
                 <div className="grid grid-cols-3 gap-4 mb-6">
                   <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-600">Total scannés</p>
-                        <p className="text-3xl font-bold text-blue-600">{stats.total}</p>
+                        <p className="text-3xl font-bold text-green-600">{stats.total}</p>
                       </div>
                       <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                        <User className="w-6 h-6 text-blue-600" />
+                        <User className="w-6 h-6 text-green-600" />
                       </div>
                     </div>
                   </div>
@@ -310,7 +368,7 @@ const scanQRCodeFromVideo = () => {
                         <button
                           onClick={startCamera}
                           disabled={scanning || showCamera}
-                          className="bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                          className="bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                         >
                           <QrCode className="w-5 h-5" />
                           <span>Scanner</span>
@@ -366,7 +424,7 @@ const scanQRCodeFromVideo = () => {
                   )}
 
                     {/* Résultat du scan */}
-                    {result && (
+                  {result && (
                       <div className={`mt-6 p-4 rounded-lg ${
                         result.success 
                           ? 'bg-green-100 border-2 border-green-300' 
@@ -384,17 +442,15 @@ const scanQRCodeFromVideo = () => {
                             }`}>
                               {result.message}
                             </p>
-                            {result.success && result.data && (
+                            {result.success && result.employe && (
                               <div className="mt-2 text-sm text-gray-700">
-                                <p className="font-medium">
-                                  {result.data.employe.prenom} {result.data.employe.nom}
-                                </p>
-                                <p>Heure: {formatTime(result.data.heureArrivee)}</p>
-                                <p>
-                                  Statut: <span className={`font-semibold ${
-                                    result.data.statut === 'PRESENT' ? 'text-green-600' : 'text-orange-600'
-                                  }`}>
-                                    {result.data.statut === 'PRESENT' ? 'À l\'heure' : 'En retard'}
+                                <p><strong>Nom / Prénom :</strong> {result.employe.prenom} {result.employe.nom}</p>
+                                <p><strong>Matricule :</strong> {result.employe.matricule}</p>
+                                <p><strong>Type de contrat :</strong> {result.typeContrat}</p>
+                                <p><strong>Heure :</strong> {formatTime(result.heureArrivee)}</p>
+                                <p><strong>Statut :</strong> 
+                                  <span className={`font-semibold ${result.statut === 'PRESENT' ? 'text-green-600' : 'text-orange-600'}`}>
+                                    {result.statut === 'PRESENT' ? 'À l\'heure' : 'En retard'}
                                   </span>
                                 </p>
                               </div>
@@ -403,6 +459,7 @@ const scanQRCodeFromVideo = () => {
                         </div>
                       </div>
                     )}
+
                   </div>
                 </div>
 
@@ -426,7 +483,7 @@ const scanQRCodeFromVideo = () => {
                           >
                             <div className="flex items-center space-x-4">
                               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                <User className="w-5 h-5 text-blue-600" />
+                                <User className="w-5 h-5 text-green-600" />
                               </div>
                               <div>
                                 <p className="font-semibold text-gray-900">
