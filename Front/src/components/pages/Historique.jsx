@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Search, Download, CheckCircle, XCircle, AlertTriangle, Clock } from 'lucide-react';
 import { apiPointage } from '../../api/apiPointage';
+import Header from '../../layout/header';
+import Sidebar from '../../layout/sidebar';
 
-export default function HistoriquePointage() {
+export default function HistoriquePointage({adminLinks}) {
   const [pointages, setPointages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
@@ -94,6 +96,14 @@ export default function HistoriquePointage() {
   };
 
   return (
+
+     <div className="min-h-screen bg-gray-50 flex flex-col">
+          <Header notifications={2} />
+    
+          <div className="flex flex-1">
+            {/* <Sidebar activeLink="employes" /> */}
+                    <Sidebar links={adminLinks} />
+    
     <div className="p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Historique des Pointages</h1>
@@ -251,5 +261,8 @@ export default function HistoriquePointage() {
         </div>
       </div>
     </div>
+    </div>
+    </div>
+
   );
 }

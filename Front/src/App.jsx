@@ -11,6 +11,7 @@ import AdminQRCodes from './components/pages/AdminPage';
 import EntrepriseList from './components/Listes/EntrepriseList';
 import AdminPayrun from './components/pages/AdminPayrun';
 import EmployePage from './components/pages/EmployePage';
+import HistoriquePointage from './components/pages/Historique';
 
 // Composant de protection de routes
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -115,6 +116,16 @@ export default function App({entreprises}) {
               <EmployePage />
             </ProtectedRoute>
           } 
+        />
+
+        <Route
+          path='/vigile/historique'
+          element={
+             <ProtectedRoute allowedRoles={['VIGILE']}>
+              <HistoriquePointage />
+            </ProtectedRoute>
+
+          }
         />
 
         <Route path="*" element={<Navigate to="/" replace />} />

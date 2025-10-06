@@ -8,7 +8,7 @@ const router = Router();
 router.get("/", EntrepriseController.getAllEntreprise)
 router.get("/:id", EntrepriseController.getOneEntreprise)
 router.post("/",upload.single("logo"), EntrepriseController.createEntreprise)
-router.put("/:id", EntrepriseController.updateEntreprise)
+router.put("/:id",upload.single("logo"), EntrepriseController.updateEntreprise)
 router.delete("/:id", EntrepriseController.deleteEntreprise)
 
 
