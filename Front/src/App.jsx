@@ -12,6 +12,8 @@ import EntrepriseList from './components/Listes/EntrepriseList';
 import AdminPayrun from './components/pages/AdminPayrun';
 import EmployePage from './components/pages/EmployePage';
 import HistoriquePointage from './components/pages/Historique';
+import DemandeConge from './components/pages/CongeEmploy';
+import AdminConges from './components/pages/AdminConge';
 
 // Composant de protection de routes
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -90,6 +92,15 @@ export default function App({entreprises}) {
           } 
         />
 
+        <Route 
+          path='/admin/conge' 
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminConges />
+            </ProtectedRoute>
+          } 
+        />
+
         {/* Routes Caissier */}
         <Route 
           path='/caissier/dashboard' 
@@ -123,6 +134,18 @@ export default function App({entreprises}) {
           element={
              <ProtectedRoute allowedRoles={['VIGILE']}>
               <HistoriquePointage />
+            </ProtectedRoute>
+
+          }
+        />
+
+
+
+        <Route
+          path='/employe/conge'
+          element={
+             <ProtectedRoute allowedRoles={['EMPLOYE']}>
+              <DemandeConge />
             </ProtectedRoute>
 
           }

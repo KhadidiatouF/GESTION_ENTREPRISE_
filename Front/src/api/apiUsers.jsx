@@ -102,8 +102,6 @@ export const apiUsers ={
       localStorage.setItem('userRole', data.tokens.user.role);
       localStorage.setItem('entrepriseId', data.tokens.user.entrepriseId);
 
-      
-
       return { success: true, user: data.tokens.user };
     } else {
       return { success: false, error: data.error };

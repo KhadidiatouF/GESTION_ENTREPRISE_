@@ -84,7 +84,8 @@ const getEmployeInfo = (paiement) => {
     nom: employe.nom || '',
     prenom: employe.prenom || '',
     matricule: employe.matricule || 'N/A',
-    fonction: employe.fonction || '-'
+    fonction: employe.fonction || '-',
+    typeContrat: employe.typeContrat || ""
   };
 };
 
@@ -95,10 +96,310 @@ const getPayrunInfo = (paiement) => {
     dateFin: new Date(payrun.dateFin || new Date())
   };
 };
+// const generatePDF = async (paiement) => {
+//   try {
+//     const employe = getEmployeInfo(paiement);
+//     const payrun = getPayrunInfo(paiement);
+
+//     let logoData = null;
+//     let entrepriseNom = 'Mon Entreprise';
+    
+//     try {
+//       const entrepriseId = paiement.employe?.entrepriseId || paiement.entrepriseId;
+      
+//       if (entrepriseId) {
+//         const accessToken = localStorage.getItem('accessToken');
+        
+//         const response = await fetch(`http://localhost:4004/entreprises/${entrepriseId}`, {
+//           headers: { 'Authorization': `Bearer ${accessToken}` }
+//         });
+        
+//         if (response.ok) {
+//           const entrepriseData = await response.json();
+//           logoData = entrepriseData.data?.logo || entrepriseData.logo;
+//           entrepriseNom = entrepriseData.data?.nom || entrepriseData.nom || 'Mon Entreprise';
+//         }
+//       }
+//     } catch (err) {
+//       console.warn('Impossible de charger le logo de l\'entreprise:', err);
+//     }
+
+//     const doc = new jsPDF();
+//     const pageWidth = doc.internal.pageSize.width;
+//     const pageHeight = doc.internal.pageSize.height;
+    
+//     doc.setFillColor(37, 99, 235);
+//     doc.rect(0, 0, pageWidth, 50, 'F');
+    
+//     if (logoData) {
+//       try {
+//         let logoBase64 = logoData;
+        
+//         if (logoData.startsWith('http')) {
+//           logoBase64 = await convertImageToBase64(logoData);
+//         }
+        
+//         if (logoData.startsWith('/uploads')) {
+//           logoBase64 = await convertImageToBase64(`http://localhost:4004${logoData}`);
+//         }
+        
+//         doc.addImage(logoBase64, 'PNG', 15, 7.5, 35, 35);
+//       } catch (err) {
+//         console.warn('Erreur lors de l\'ajout du logo:', err);
+//       }
+//     }
+    
+//     doc.setFontSize(24);
+//     doc.setTextColor(255, 255, 255);
+//     doc.setFont(undefined, 'bold');
+//     const titleX = logoData ? 60 : pageWidth / 2;
+//     const titleAlign = logoData ? 'left' : 'center';
+//     doc.text("FICHE DE PAIE", titleX, 25, { align: titleAlign });
+    
+//     doc.setFontSize(12);
+//     doc.setFont(undefined, 'normal');
+//     doc.text(entrepriseNom, titleX, 35, { align: titleAlign });
+    
+    
+//     let yPos = 65;
+    
+//     doc.setFillColor(239, 246, 255);
+//     doc.setDrawColor(191, 219, 254);
+//     doc.setLineWidth(0.5);
+//     doc.roundedRect(15, yPos, pageWidth - 30, 50, 3, 3, 'FD');
+    
+//     doc.setFillColor(219, 234, 254);
+//     doc.circle(28, yPos + 25, 10, 'F');
+//     doc.setFillColor(37, 99, 235);
+//     doc.setFontSize(16);
+//     doc.text("👤", 28, yPos + 28, { align: 'center' });
+    
+//     const infoX = 45;
+//     doc.setTextColor(17, 24, 39);
+//     doc.setFontSize(16);
+//     doc.setFont(undefined, 'bold');
+//     doc.text(`${employe.prenom} ${employe.nom}`, infoX, yPos + 15);
+    
+//     doc.setFontSize(10);
+//     doc.setFont(undefined, 'normal');
+//     doc.setTextColor(75, 85, 99);
+//     doc.text(`Matricule: ${employe.matricule}`, infoX, yPos + 25);
+//     doc.text(`Fonction: ${employe.fonction}`, infoX, yPos + 33);
+//     doc.text(`Période: ${formatDate(payrun.dateDebut)} - ${formatDate(payrun.dateFin)}`, infoX, yPos + 41);
+//     doc.text(`Type contrat: ${employe.typeContrat}`, infoX, yPos + 48);
+    
+//     yPos += 65;
+//     const cardWidth = (pageWidth - 50) / 3;
+//     const cardHeight = 35;
+    
+//     doc.setFillColor(249, 250, 251);
+//     doc.setDrawColor(229, 231, 235);
+//     doc.roundedRect(15, yPos, cardWidth, cardHeight, 2, 2, 'FD');
+    
+//     doc.setFontSize(9);
+//     doc.setTextColor(107, 114, 128);
+//     doc.setFont(undefined, 'normal');
+//     doc.text("Montant total", 20, yPos + 10);
+    
+//     doc.setFontSize(13);
+//     doc.setTextColor(17, 24, 39);
+//     doc.setFont(undefined, 'bold');
+//     doc.text(formatCurrency(paiement.montant || 0), 20, yPos + 23);
+    
+//     const card2X = 15 + cardWidth + 5;
+//     doc.setFillColor(240, 253, 244);
+//     doc.setDrawColor(187, 247, 208);
+//     doc.roundedRect(card2X, yPos, cardWidth, cardHeight, 2, 2, 'FD');
+    
+//     doc.setFontSize(9);
+//     doc.setTextColor(107, 114, 128);
+//     doc.setFont(undefined, 'normal');
+//     doc.text("Déjà payé", card2X + 5, yPos + 10);
+    
+//     doc.setFontSize(13);
+//     doc.setTextColor(22, 163, 74);
+//     doc.setFont(undefined, 'bold');
+//     doc.text(formatCurrency(paiement.totalPaye || 0), card2X + 5, yPos + 23);
+    
+//     const card3X = card2X + cardWidth + 5;
+//     doc.setFillColor(254, 242, 242);
+//     doc.setDrawColor(254, 202, 202);
+//     doc.roundedRect(card3X, yPos, cardWidth, cardHeight, 2, 2, 'FD');
+    
+//     doc.setFontSize(9);
+//     doc.setTextColor(107, 114, 128);
+//     doc.setFont(undefined, 'normal');
+//     doc.text("Reste à payer", card3X + 5, yPos + 10);
+    
+//     doc.setFontSize(13);
+//     doc.setTextColor(220, 38, 38);
+//     doc.setFont(undefined, 'bold');
+//     doc.text(formatCurrency(paiement.montantRestant || 0), card3X + 5, yPos + 23);
+
+//     yPos += 50;
+    
+//     doc.setFontSize(14);
+//     doc.setTextColor(17, 24, 39);
+//     doc.setFont(undefined, 'bold');
+//     doc.text("Détails du paiement", 15, yPos);
+    
+//     yPos += 8;
+    
+//     autoTable(doc, {
+//       startY: yPos,
+//       head: [["Description", "Montant"]],
+//       body: [
+//         ["Salaire brut période", formatCurrency(paiement.montant || 0)],
+//         ["Montant déjà payé", formatCurrency(paiement.totalPaye || 0)],
+//         ["Montant restant", formatCurrency(paiement.montantRestant || 0)],
+//       ],
+//       theme: 'striped',
+//       styles: { 
+//         fontSize: 11, 
+//         cellPadding: 8,
+//         lineColor: [229, 231, 235],
+//         lineWidth: 0.1
+//       },
+//       headStyles: { 
+//         fillColor: [37, 99, 235],
+//         textColor: [255, 255, 255],
+//         fontStyle: 'bold',
+//         halign: 'left',
+//         fontSize: 12
+//       },
+//       columnStyles: {
+//         0: { cellWidth: 100, fontStyle: 'normal' },
+//         1: { 
+//           halign: 'right', 
+//           fontStyle: 'bold',
+//           fontSize: 12
+//         }
+//       },
+//       alternateRowStyles: {
+//         fillColor: [249, 250, 251]
+//       },
+//       didParseCell: function(data) {
+//         if (data.section === 'body' && data.row.index === 2) {
+//           if (data.column.index === 1) {
+//             data.cell.styles.textColor = [220, 38, 38];
+//             data.cell.styles.fontStyle = 'bold';
+//           }
+//           if (data.column.index === 0) {
+//             data.cell.styles.fontStyle = 'bold';
+//           }
+//         }
+//       }
+//     });
+
+//     yPos = doc.lastAutoTable.finalY + 20;
+    
+//     doc.setFontSize(11);
+//     doc.setTextColor(75, 85, 99);
+//     doc.setFont(undefined, 'bold');
+//     doc.text("Statut du paiement:", 15, yPos);
+    
+//     const statutLabel = getStatutLabel(paiement.statut);
+//     let bgColor, textColor, borderColor;
+    
+//     switch(paiement.statut) {
+//       case 'PAYE':
+//         bgColor = [220, 252, 231];
+//         textColor = [22, 101, 52];
+//         borderColor = [187, 247, 208];
+//         break;
+//       case 'PARTIEL':
+//         bgColor = [254, 243, 199];
+//         textColor = [154, 52, 18];
+//         borderColor = [253, 224, 71];
+//         break;
+//       case 'EN_ATTENTE':
+//         bgColor = [254, 249, 195];
+//         textColor = [161, 98, 7];
+//         borderColor = [253, 224, 71];
+//         break;
+//       default:
+//         bgColor = [243, 244, 246];
+//         textColor = [31, 41, 55];
+//         borderColor = [209, 213, 219];
+//     }
+    
+//     const badgeX = 70;
+//     const badgeWidth = 35;
+//     const badgeHeight = 10;
+    
+//     doc.setFillColor(...bgColor);
+//     doc.setDrawColor(...borderColor);
+//     doc.setLineWidth(0.5);
+//     doc.roundedRect(badgeX, yPos - 7, badgeWidth, badgeHeight, 2, 2, 'FD');
+    
+//     doc.setTextColor(...textColor);
+//     doc.setFont(undefined, 'bold');
+//     doc.setFontSize(10);
+//     doc.text(statutLabel, badgeX + (badgeWidth / 2), yPos - 0.5, { align: 'center' });
+
+//     const footerY = pageHeight - 20;
+    
+//     doc.setDrawColor(229, 231, 235);
+//     doc.setLineWidth(0.5);
+//     doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
+    
+//     doc.setFontSize(8);
+//     doc.setTextColor(156, 163, 175);
+//     doc.setFont(undefined, 'normal');
+//     doc.text(
+//       `Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`,
+//       pageWidth / 2,
+//       footerY,
+//       { align: 'center' }
+//     );
+
+//     const monthYear = payrun.dateDebut.toISOString().slice(0, 7);
+//     doc.save(`fiche_paie_${employe.matricule}_${monthYear}.pdf`);
+
+//   } catch (error) {
+//     console.error("Erreur lors de la génération du PDF:", error);
+//     alert("Impossible de générer le PDF. Erreur: " + error.message);
+//   }
+// };
+
+
 const generatePDF = async (paiement) => {
   try {
     const employe = getEmployeInfo(paiement);
     const payrun = getPayrunInfo(paiement);
+
+    // 🆕 Récupérer les pointages pour calculer les jours travaillés
+    let joursTravailles = 0;
+    let detailsPointage = { presents: 0, retards: 0, absents: 0 };
+    
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      const employeId = paiement.employe?.id;
+      
+      if (employeId) {
+        const dateDebut = payrun.dateDebut.toISOString();
+        const dateFin = payrun.dateFin.toISOString();
+        
+        const response = await fetch(
+          `http://localhost:4004/pointage/employe/${employeId}?dateDebut=${dateDebut}&dateFin=${dateFin}`,
+          { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        );
+        
+        if (response.ok) {
+          const pointagesData = await response.json();
+          const pointages = pointagesData.data || [];
+          
+          detailsPointage.presents = pointages.filter(p => p.statut === 'PRESENT').length;
+          detailsPointage.retards = pointages.filter(p => p.statut === 'RETARD').length;
+          detailsPointage.absents = pointages.filter(p => p.statut === 'ABSENT').length;
+          
+          // Jours travaillés = présents + retards (car même en retard, ils ont travaillé)
+          joursTravailles = detailsPointage.presents + detailsPointage.retards;
+        }
+      }
+    } catch (err) {
+      console.warn('Impossible de charger les pointages:', err);
+    }
 
     let logoData = null;
     let entrepriseNom = 'Mon Entreprise';
@@ -159,13 +460,15 @@ const generatePDF = async (paiement) => {
     doc.setFont(undefined, 'normal');
     doc.text(entrepriseNom, titleX, 35, { align: titleAlign });
     
-    
     let yPos = 65;
+    
+    // 🆕 Augmentez la hauteur pour inclure les jours travaillés
+    const infoBoxHeight = employe.typeContrat === 'JOURNALIER' ? 60 : 50;
     
     doc.setFillColor(239, 246, 255);
     doc.setDrawColor(191, 219, 254);
     doc.setLineWidth(0.5);
-    doc.roundedRect(15, yPos, pageWidth - 30, 50, 3, 3, 'FD');
+    doc.roundedRect(15, yPos, pageWidth - 30, infoBoxHeight, 3, 3, 'FD');
     
     doc.setFillColor(219, 234, 254);
     doc.circle(28, yPos + 25, 10, 'F');
@@ -185,8 +488,16 @@ const generatePDF = async (paiement) => {
     doc.text(`Matricule: ${employe.matricule}`, infoX, yPos + 25);
     doc.text(`Fonction: ${employe.fonction}`, infoX, yPos + 33);
     doc.text(`Période: ${formatDate(payrun.dateDebut)} - ${formatDate(payrun.dateFin)}`, infoX, yPos + 41);
+    doc.text(`Type contrat: ${employe.typeContrat}`, infoX, yPos + 48);
+    
+    if (employe.typeContrat === 'JOURNALIER') {
+      doc.setTextColor(22, 163, 74);
+      doc.setFont(undefined, 'bold');
+      doc.text(`Jours travaillés: ${joursTravailles} jour(s) (Présents: ${detailsPointage.presents}, Retards: ${detailsPointage.retards}),  Absences: ${detailsPointage.absents})`, infoX, yPos + 56);
+    }
 
-    yPos += 65;
+    yPos += infoBoxHeight + 15;
+    
     const cardWidth = (pageWidth - 50) / 3;
     const cardHeight = 35;
     
@@ -243,14 +554,23 @@ const generatePDF = async (paiement) => {
     
     yPos += 8;
     
+    const tableBody = [
+      ["Salaire brut période", formatCurrency(paiement.montant || 0)],
+      ["Montant déjà payé", formatCurrency(paiement.totalPaye || 0)],
+      ["Montant restant", formatCurrency(paiement.montantRestant || 0)],
+    ];
+    
+    if (employe.typeContrat === 'JOURNALIER' && joursTravailles > 0) {
+      tableBody.splice(1, 0, [
+        `Jours travaillés (${joursTravailles} jour(s))`,
+        `Présents: ${detailsPointage.presents} | Retards: ${detailsPointage.retards} |  Absences: ${detailsPointage.absents} `
+      ]);
+    }
+    
     autoTable(doc, {
       startY: yPos,
       head: [["Description", "Montant"]],
-      body: [
-        ["Salaire brut période", formatCurrency(paiement.montant || 0)],
-        ["Montant déjà payé", formatCurrency(paiement.totalPaye || 0)],
-        ["Montant restant", formatCurrency(paiement.montantRestant || 0)],
-      ],
+      body: tableBody,
       theme: 'striped',
       styles: { 
         fontSize: 11, 
@@ -277,7 +597,10 @@ const generatePDF = async (paiement) => {
         fillColor: [249, 250, 251]
       },
       didParseCell: function(data) {
-        if (data.section === 'body' && data.row.index === 2) {
+        const isRestantRow = employe.typeContrat === 'JOURNALIER' ? 
+          data.row.index === 3 : data.row.index === 2;
+        
+        if (data.section === 'body' && isRestantRow) {
           if (data.column.index === 1) {
             data.cell.styles.textColor = [220, 38, 38];
             data.cell.styles.fontStyle = 'bold';
@@ -285,6 +608,11 @@ const generatePDF = async (paiement) => {
           if (data.column.index === 0) {
             data.cell.styles.fontStyle = 'bold';
           }
+        }
+        
+        if (data.section === 'body' && data.row.index === 1 && employe.typeContrat === 'JOURNALIER') {
+          data.cell.styles.textColor = [22, 163, 74];
+          data.cell.styles.fontStyle = 'bold';
         }
       }
     });
@@ -359,7 +687,6 @@ const generatePDF = async (paiement) => {
     alert("Impossible de générer le PDF. Erreur: " + error.message);
   }
 };
-
 
 const convertImageToBase64 = (url) => {
   return new Promise((resolve, reject) => {

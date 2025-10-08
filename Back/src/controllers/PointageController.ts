@@ -321,4 +321,73 @@ export class PointageController {
       );
     }
   }
+
+ 
+  static async getStatistiques(req: Request, res: Response) {
+    try {
+      const { employeId } = req.params;  
+      const { mois } = req.query;        
+      
+      console.log('employeId:', employeId);
+      console.log('mois:', mois);
+      
+      if (!employeId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID employé manquant'
+        });
+      }
+      
+      if (!mois) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mois manquant'
+        });
+      }
+      
+      const [annee, moisNum] = (mois as string).split('-');
+      
+      const dateDebut = new Date(Number(annee), Number(moisNum) - 1, 1);
+      const dateFin = new Date(Number(annee), Number(moisNum), 0, 23, 59, 59);
+      
+      const pointages = await prisma.pointage.findMany({
+        where: {
+          employeId: Number(employeId),
+          date: {
+            gte: dateDebut,
+            lte: dateFin
+          }
+        }
+      });
+      
+      // Calculer les statistiques
+      const total = pointages.length;
+      const presents = pointages.filter(p => p.statut === 'PRESENT').length;
+      const retards = pointages.filter(p => p.statut === 'RETARD').length;
+      const absents = pointages.filter(p => p.statut === 'ABSENT').length;
+      
+      const tauxPresence = total > 0 ? Math.round((presents / total) * 100) : 0;
+      const tauxRetard = total > 0 ? Math.round((retards / total) * 100) : 0;
+      
+      return res.status(200).json({
+        success: true,
+        data: {
+          total,
+          presents,
+          retards,
+          absents,
+          tauxPresence,
+          tauxRetard
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('Erreur getStatistiques:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Erreur serveur',
+        error: error.message
+      });
+    }
+  }
 }

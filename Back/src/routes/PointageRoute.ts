@@ -11,5 +11,8 @@ router.get('/employe/:employeId', PointageController.getPointagesEmploye);
 router.get('/aujourd-hui', PointageController.getPointage);
 
 router.get('/filtres', PointageController.getPointagesAvecFiltres);
+// Exemple d’une route statistiques
+router.get('/employe/:employeId/statistiques', PointageController.getStatistiques);
+
 
 export default router;

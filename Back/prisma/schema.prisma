@@ -34,6 +34,8 @@ model User {
   entrepriseId Int?
   paiements    Paiement[]  
   pointages    Pointage[]
+  employe      Employe?  
+ 
 }
 
 model Employe {
@@ -49,7 +51,32 @@ model Employe {
   payslips     Payslip[]
   qrCode      String?   @db.Text
   pointages   Pointage[]
+  user         User?       @relation(fields: [userId], references: [id])
+  userId       Int?        @unique
+  conge         Conge[]
+
 }
+
+model Conge {
+  id            Int       @id @default(autoincrement())
+  employe       Employe   @relation(fields: [employeId], references: [id])
+  employeId     Int
+  nature        String
+  dateDebut     DateTime
+  dateFin       DateTime
+  statut        StatutConge    @default(EN_ATTENTE) // en_attente | approuvé | refusé
+  commentaireAdmin String? // facultatif
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+
+enum StatutConge {
+  EN_ATTENTE
+  APPROUVE
+  REFUSE
+}
+
 
 model Payrun {
   id              Int        @id @default(autoincrement())

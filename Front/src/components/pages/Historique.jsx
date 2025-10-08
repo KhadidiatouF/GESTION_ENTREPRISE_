@@ -13,7 +13,7 @@ export default function HistoriquePointage({adminLinks}) {
     recherche: ''
   });
 
-  const entrepriseId = parseInt(localStorage.getItem('entrepriseId'));
+  const entrepriseId = Number(localStorage.getItem('entrepriseId'));
 
   useEffect(() => {
     loadPointages();
@@ -101,7 +101,6 @@ export default function HistoriquePointage({adminLinks}) {
           <Header notifications={2} />
     
           <div className="flex flex-1">
-            {/* <Sidebar activeLink="employes" /> */}
                     <Sidebar links={adminLinks} />
     
     <div className="p-6">

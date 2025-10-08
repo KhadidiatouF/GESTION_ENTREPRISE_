@@ -27,6 +27,8 @@ export default function LoginPage() {
     if (error) setError('');
   };
 
+  
+
 const handleSubmit = async () => {
   setIsLoading(true);
   setError('');
@@ -41,9 +43,8 @@ const handleSubmit = async () => {
     const res = await apiUsers.loginUser(formData.login, formData.password);
 
     if (res.success) {
-      const role = res.user.role; // ✅ récupéré depuis backend
+      const role = res.user.role; 
 
-      // Redirection selon rôle
       switch (role) {
       case 'SUPER_ADMIN':
       navigate('/super-admin/dashboard');

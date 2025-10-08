@@ -1,0 +1,32 @@
+super_admin
+login: superadmin
+mdp: pass12
+
+#####################################
+
+admin
+
+login: admin1
+mdp: pass11
+
+
+#####################################
+
+caissier
+
+login: caissier1
+mdp: pass3
+
+#####################################
+vigile
+
+login: vigile
+mdp: vigile
+#####################################
+
+
+employe
+
+login: EMPOO9
+mdp: aidara
+

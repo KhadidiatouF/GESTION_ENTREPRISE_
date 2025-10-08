@@ -11,6 +11,8 @@ const ModalEmploye = ({ isOpen, onClose, employe, onSuccess, entrepriseId }) => 
     matricule: '',
     estActif: true,
     typeContrat: '',
+    login: '',
+    password: '',
     entrepriseId: entrepriseId 
   });
   const [loading, setLoading] = useState(false);
@@ -66,6 +68,8 @@ const ModalEmploye = ({ isOpen, onClose, employe, onSuccess, entrepriseId }) => 
         matricule: employe.matricule || '',
         estActif: employe.estActif !== undefined ? employe.estActif : true,
         typeContrat: employe.typeContrat || '',
+        login : employe.login || '',
+        password: employe.password || '',
         entrepriseId: localStorage.getItem('entrepriseId'),
       });
     } else {
@@ -76,6 +80,8 @@ const ModalEmploye = ({ isOpen, onClose, employe, onSuccess, entrepriseId }) => 
         matricule: '',
         estActif: true,
         typeContrat: '',
+        login: '',
+        password:'',
         entrepriseId: localStorage.getItem('entrepriseId'),
       });
     }
@@ -112,14 +118,12 @@ const handleSubmit = async (e) => {
       result = await apiEmploye.updateEmploye(employe.id, submitData);
     } else {
       result = await apiEmploye.addEmploye(submitData);
-      console.log('📦 Résultat création:', result); // Debug
-      console.log('🔍 QR Code reçu:', result.data?.qrCode); // Debug
       
       if (result.data && result.data.qrCode) {
         setCreatedEmploye(result.data);
         setShowQRModal(true);
       } else {
-        console.warn('⚠️ Pas de QR Code dans la réponse');
+        console.warn('Pas de QR Code dans la réponse');
       }
     }
 
@@ -137,45 +141,7 @@ const handleSubmit = async (e) => {
     setLoading(false);
   }
 };
-//  const handleSubmit = async (e) => {
-//   e.preventDefault();
 
-//   if (!validate()) return;
-
-//   setLoading(true);
-//   try {
-//     const submitData = { 
-//       ...formData, 
-//       entrepriseId: parseInt(localStorage.getItem('entrepriseId')),
-//     };
-
-//     let result;
-//     if (employe) {
-//       result = await apiEmploye.updateEmploye(employe.id, submitData);
-//       onSuccess();
-//       onClose();
-//     } else {
-//       result = await apiEmploye.addEmploye(submitData);
-//     onSuccess();
-//     onClose();
-
-//     // Afficher le QR code après création
-//     setTimeout(() => {
-//       setCreatedEmploye(result.data); // result.data contient qrCode
-//       setShowQRModal(true);
-//     }, 100);
-
-//     }
-//   } catch (err) {
-//     console.error("Erreur :", err);
-//     setErrors(prev => ({ 
-//       ...prev, 
-//       submit: err.response?.data?.message || "Échec de l'opération. Veuillez vérifier les champs." 
-//     }));
-//   } finally {
-//     setLoading(false);
-//   }
-// };
   const handleCloseQRModal = () => {
     setShowQRModal(false);
     setCreatedEmploye(null);
@@ -256,6 +222,35 @@ const handleSubmit = async (e) => {
                 />
                 {errors.matricule && <p className="mt-1 text-sm text-red-500">{errors.matricule}</p>}
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Identifiant de connexion (login)
+                </label>
+                <input
+                  type="text"
+                  name="login"
+                  value={formData.login}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ex: amadou.d"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mot de passe initial
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ex: 123456"
+                />
+              </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

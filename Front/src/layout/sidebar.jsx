@@ -4,14 +4,11 @@ import {
   Activity, 
   Building2, 
   FileText, 
-  Settings, 
   Users,
-  DollarSign,
   Calendar,
   QrCode,
   BarChart3,
   Clock,
-  UserCheck
 } from 'lucide-react';
 
 const sidebarConfig = {
@@ -25,7 +22,9 @@ const sidebarConfig = {
     { label: "Cycles de Paie", icon: Calendar, path: "/admin/payruns" },
     { label: "Pointages", icon: Clock, path: "/admin/pointages" },
     { label: "QR Codes", icon: QrCode, path: "/admin/qrcodes" },
-    { label: "Statistiques", icon: BarChart3, path: "/admin/statistiques" }
+    { label: "Statistiques", icon: BarChart3, path: "/admin/statistiques" },
+    { label: "Congés", icon: BarChart3, path: "/admin/conge" }
+
   ],
   CASSIER: [
     { label: "Tableau de Bord", icon: Activity, path: "/caissier/dashboard" },
@@ -37,8 +36,8 @@ const sidebarConfig = {
   ],
   EMPLOYE: [
     { label: "Mon QR Code", icon: QrCode, path: "/employe/qrcode" },
-    { label: "Mes Pointages", icon: Clock, path: "/employe/pointages" },
-    { label: "Mes Bulletins", icon: FileText, path: "/employe/bulletins" }
+    { label: "Demande de Congé", icon: Clock, path: "/employe/conge" },
+    // { label: "Mes Bulletins", icon: FileText, path: "/employe/bulletins" }
   ]
 };
 

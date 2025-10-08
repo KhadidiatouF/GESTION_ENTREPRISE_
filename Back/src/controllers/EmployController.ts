@@ -5,16 +5,43 @@ import { ZodError } from "zod";
 import { EmployeService } from "../services/EmployService";
 import { PrismaClient } from '@prisma/client';
 import { EmployeSchema } from "../validator/employValidator";
+import QRCode from "qrcode";
+
 
 const prisma = new PrismaClient();
 const employeService = new EmployeService();
 
 export class EmployeController {
 
+  static async getQRCodeByUserId(req: Request, res: Response) {
+    try {
+      const userId = Number(req.params.userId);
+
+      if (!userId || isNaN(userId)) {
+        return res.status(400).json({
+          success: false,
+          message: "userId invalide",
+        });
+      }
+
+      const qrCode = await employeService.getQRCodeByUserId(userId);
+
+      return res.json({
+        success: true,
+        qrCodeImage: qrCode,
+      });
+    } catch (error: any) {
+      console.error("Erreur QR code par userId:", error);
+      return res.status(404).json({
+        success: false,
+        message: error.message || "Employé non trouvé",
+      });
+    }
+  }
+
 
 static async getAllEmploye(req: Request, res: Response, next: NextFunction) {
     try {
-      // Récupérer l'entrepriseId depuis les query params OU depuis le token
       const entrepriseId = Number(req.query.entrepriseId) 
 
       if (!entrepriseId) {
@@ -46,10 +73,15 @@ static async getAllEmploye(req: Request, res: Response, next: NextFunction) {
     }
   }
 
+
+  
+
   static async getOneEmploye(req: Request, res: Response, next: NextFunction) {
     try {
-      const id = Number(req.params.id);
-      const employe = await employeService.getOneEmploye(id);
+      // const id = Number(req.params.id);
+        const userId = Number(req.params.userId);
+
+      const employe = await employeService.getOneEmploye(userId);
 
       if (employe) {
         FormaterResponse.success(res, employe, "Employé trouvé", HttpCode.OK);
@@ -95,19 +127,59 @@ static async getAllEmploye(req: Request, res: Response, next: NextFunction) {
   //   }
   // }
 
+
+  static async getEmployeIdByUserId(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = Number(req.params.userId);
+
+    if (!userId || isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "userId invalide",
+      });
+    }
+
+    const employe = await employeService.getEmployeByUserId(userId);
+
+    if (!employe) {
+      return res.status(404).json({
+        success: false,
+        message: "Employé non trouvé pour cet utilisateur",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        employeId: employe.id,
+        nom: employe.nom,
+        prenom: employe.prenom,
+        matricule: employe.matricule,
+      },
+    });
+  } catch (error: any) {
+    console.error("Erreur getEmployeIdByUserId:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Erreur serveur",
+    });
+  }
+}
+  
+
   static async createEmploye(req: Request, res: Response, next: NextFunction) {
   try {
     const data = req.body;
-    console.log('📥 Données reçues:', data); // Debug
+    console.log('Données reçues:', data);
     
     const employe = await employeService.createEmploye(data);
-    console.log('✅ Employé créé avec QR:', employe.qrCode ? 'OUI' : 'NON'); // Debug
+    console.log('Employé créé avec QR:', employe.qrCode ? 'OUI' : 'NON');
 
     if (employe) {
       FormaterResponse.success(res, employe, "Employé créé avec succès", HttpCode.CREATED);
     }
   } catch (error: any) {
-    console.error('❌ Erreur complète:', error);
+    console.error('Erreur complète:', error);
     
     if (error.code === "P2002") {
       return FormaterResponse.failed(
@@ -165,18 +237,48 @@ static async getAllEmploye(req: Request, res: Response, next: NextFunction) {
       FormaterResponse.failed(res, "Employé non trouvé", HttpCode.NOT_FOUND);
     }
   }
-// GET /employes/:id/qrcode
+
 static async getQRCode(req: Request, res: Response) {
   try {
     const { id } = req.params;
-    const employe = await prisma.employe.findUnique({ where: { id: Number(id) } });
-    if (!employe || !employe.qrCode) {
-      return res.status(404).json({ success: false, message: "QR Code non trouvé" });
+
+    const employe = await prisma.employe.findUnique({
+      where: { id: Number(id) },
+      include: { user: true, entreprise: true },
+    });
+
+    if (!employe) {
+      return res.status(404).json({ success: false, message: "Employé non trouvé" });
     }
 
-    return res.json({ success: true, data: { qrCodeImage: employe.qrCode } });
-  } catch (err) {
-    return res.status(500).json({ success: false, message: "Erreur serveur" });
+    if (employe.qrCode) {
+      return res.json({
+        success: true,
+        data: { qrCodeImage: employe.qrCode },
+      });
+    }
+
+    const qrData = JSON.stringify({
+      employeId: employe.id,
+      nom: employe.nom,
+      prenom: employe.prenom,
+      matricule: employe.matricule,
+    });
+
+    const qrCodeImage = await QRCode.toDataURL(qrData);
+
+    await prisma.employe.update({
+      where: { id: employe.id },
+      data: { qrCode: qrCodeImage },
+    });
+
+    return res.json({
+      success: true,
+      data: { qrCodeImage },
+    });
+  } catch (error) {
+    console.error("Erreur QR Code:", error);
+    res.status(500).json({ success: false, message: "Erreur serveur" });
   }
 }
 

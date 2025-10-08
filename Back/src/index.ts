@@ -32,10 +32,10 @@ app.use("/auth", AuthRoute)
 app.use("/users", UserRoute)
 app.use("/entreprises", EntrepriseRoute)
 app.use("/employes", EmployeRoute)
+app.use("/pointage", PointageRoute);
 app.use("/paiement", PaiementRoute)
 app.use("/payrun", PayrunRoute)
 app.use("/payslip", PayslipRoute)
-app.use("/pointage", PointageRoute);
 
 
 
